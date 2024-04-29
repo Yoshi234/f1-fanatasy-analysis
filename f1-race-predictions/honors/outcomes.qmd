@@ -1,0 +1,29 @@
+# F1-Analysis for the 2024 Miami Grand Prix
+
+## Track Layout / Information
+
+![track layout and speeds](track.png){fig-align="center"}
+
+Analysis for conducted using a logistic regression with 30 features
+for additional information about the modeling process, please send me a 
+message on GitHub issues
+
+## Top3 Finishing Position Predictions
+
+The table below presents odds of placing in the top 3 positions for each 
+of the drivers in the current standings for F1. 
+
+```{python}
+#| echo: false
+import pandas as pd
+
+results = pd.read_csv("new_results.csv")
+results.sort_values(by="prob of top 3 finish", ascending=False)
+```
+
+We can see here that the top 3 predicted finishers are:
+    
++ Max Verstappen : probability of top 3 finish - 99.51%
++ Sergio Perez : probability of top 3 finish - 99.17%
++ Charles Leclerc : probability of top 3 finish - 53.41%
+    

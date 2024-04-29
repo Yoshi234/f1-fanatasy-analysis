@@ -1,0 +1,1015 @@
+---
+title: "Logistic Regression Modeling for Race and Qualifying Outcomes (2010-present)"
+subtitle: "STAT 3255 Final Project"
+author: Joshua Lee
+format: 
+  revealjs:
+    theme: moon
+    transition: slide
+    embed-resources: true
+    slide-number: true
+    preview-links: auto
+  execute:
+    warning: false
+    error: false
+  output:
+    quarto::quarto_presentation:
+      scrollable: true
+---
+
+* Author: Joshua Lee
+* Submission Date: 2024-04-15 / 11:59pm
+
+# Preliminary Analysis
+
+Load the data into scope
+
+```{python}
+import pandas as pd
+import numpy as np
+
+data = pd.read_feather("../data/clean_model_data.feather")
+data2 = data.loc[data['year'] >= 2022]
+data2 = data2.reset_index()
+
+# eliminate new variables from the dataset
+base_data = data.drop(['ref_year','ref_name','strt_len_mean','strt_len_q1',
+                       'strt_len_q1','strt_len_median','strt_len_q3',
+                       'strt_len_max','strt_len_min','str_len_std',
+                       'avg_track_spd','max_track_spd','min_track_spd',
+                       'std_track_spd','corner_spd_mean','corner_spd_q1',
+                       'corner_spd_median','corner_spd_q3','corner_spd_max',
+                       'corner_spd_min','num_slow_corners','num_fast_corners',
+                       'num_corners','circuit_len','regulation_id','engine_reg',
+                       'tire_reg','aero_reg','chastech_reg','sporting_reg',
+                       'pitstop_reg','years_since_major_cycle','is_major_reg',
+                       'cycle'], axis=1)
+```
+
+
+
+Look at a correlation matrix to identify the most obvious patterns
+
+```{python}
+import seaborn as sns
+
+numeric = data.select_dtypes(include=['int64', 'float64'])
+corr = numeric.corr()
+sns.heatmap(corr)
+```
+
+As you can see, the variables which demonstrate the highest correlation to
+finishing position (positionOrder) are the following
+
++ `prev_driver_position`
++ `prev_constructor_postion`
++ `quali_position`
+
+Additionally, `prev_driver_position` and `prev_constructor_position` are strongly
+correlated to the qualifying position. These will definitely be variables we want
+to include in the final model. 
+
+This is to be expected given the results obtained by prior works. The 
+track descriptive data is unlikely to be useful unless we include interactions
+across drivers, constructors, the year, and potentially the regulation cycle. 
+(this is especially true when dealing with linear models)
+
+The first thing we want to do however is develop a preprocessing scheme for 
+converting all of our extremely important categorical variables into meaningful 
+numeric data. I use a standard one-hot encoding technique to accomplish this 
+task.
+
+> define a helper function for studying categorical variables
+
+```{python}
+from sklearn.preprocessing import OneHotEncoder
+
+def get_features(data:pd.DataFrame, features=[], select=False):
+    if len(features) == 0: features = ['driverId', 'constructorId']
+    encoder = OneHotEncoder()
+    one_hot = encoder.fit_transform(data[features])
+    feature_names = encoder.get_feature_names_out()
+    df_features = pd.DataFrame(one_hot.toarray(), columns=feature_names)
+    
+    if select==True:
+        df_study = pd.concat([data[['positionOrder','quali_position']], df_features], axis=1)
+    else:
+        df_study = pd.concat([data, df_features], axis=1)
+
+    return df_study
+```
+
+```{python}
+def get_encoded_data(dat:pd.DataFrame):
+    # we need lists of these variables so we can create interactions between the encoded
+    # categoricals and the other variables of interest
+    driver_vars = ['driverId_{}'.format(id) for id in dat['driverId'].unique()] 
+    construct_vars = ['constructorId_{}'.format(id) for id in dat['constructorId'].unique()]
+    cycle_vars = ['cycle_{}'.format(id) for id in dat['cycle'].unique()]
+
+    # test track characteristics - corner_spd_mean, num_fast_corners, num_slow_corners, strt_len_max
+    # test all constructors
+    # test regulation types - engine_reg, aero_reg, years_since_major_cycle
+    #       engine_reg * years_since_major_cycle + engine_reg
+    #       aero_reg * years_since_major_cycle + aero_reg
+    encoded_dat = get_features(dat, ['constructorId','driverId', 'cycle'], select=False)
+    return driver_vars, construct_vars, cycle_vars, encoded_dat
+
+driver_vars, construct_vars, cycle_vars, encoded_dat = get_encoded_data(data2)
+```
+
+Run the function on drivers and cosntructors
+
+```{python}
+driver_construct_dat = get_features(data, ['driverId', 'constructorId', 'cycle'], select=True)
+corr = driver_construct_dat.corr()
+sns.heatmap(corr)
+```
+
+Because there are so many drivers in the data, it is hard to visualize who are
+which drivers are the most predictively significant (for finishing position). 
+Instead, we select the most important drivers and constructors - specifically
+we identify drivers with a negative or positive correlation to their finishing
+position which is greater than 0.1, or less than -0.1
+
+```{python}
+x = corr.loc['positionOrder'].T
+x = x[(x > 0.2) | (x < -0.2)]
+x
+```
+
+From this output, we identify driver Id's 1, 3, 10, 20, 39, 822, and 830. Let's 
+first examine these individuals:
+
+```{python}
+# read in drivers data for reference
+drivers = pd.read_csv("../data/drivers.csv")
+
+values = {1,6,9,20,39,822,830}
+subset = drivers.loc[drivers['driverId'].isin(values), 'driverRef']
+subset
+```
+
+The names are useful, but we might also want to examine some relevant racing finishing
+position statistics:
+
+```{python}
+recent_drivers = data[['driverId', 'constructorId', 'positionOrder', 'quali_position']]
+
+for id in recent_drivers['driverId'].unique():
+    recent_drivers.loc[recent_drivers['driverId'] == id,'avg_fp'] = recent_drivers.loc[recent_drivers['driverId'] == id,'positionOrder'].mean()
+    recent_drivers.loc[recent_drivers['driverId'] == id,'std_fp'] = recent_drivers.loc[recent_drivers['driverId'] == id,'positionOrder'].std()
+    recent_drivers.loc[recent_drivers['driverId'] == id,'avg_quali'] = recent_drivers.loc[recent_drivers['driverId'] == id,'quali_position'].mean()
+    recent_drivers.loc[recent_drivers['driverId'] == id,'std_quali'] = recent_drivers.loc[recent_drivers['driverId'] == id,'quali_position'].std()
+
+recent_drivers = recent_drivers[['driverId', 
+                                 'avg_fp',
+                                 'std_fp',
+                                 'avg_quali',
+                                 'std_quali']].drop_duplicates()
+
+driver_stats = pd.merge(drivers, recent_drivers, on='driverId', how='inner')
+```
+
+```{python}
+driver_stats.loc[driver_stats['driverId'].isin(values),
+                 ['driverId', 'driverRef', 'avg_fp', 'std_fp','avg_quali', 'std_quali']]
+```
+
+If you compare this output with the table output with the correlation table output, 
+you will notice that the observed correlations are reasonable. Namely, Hamilton, who has 
+an extremely high average finishing position also demonstrates a strong negative correlation
+with finishing position. The same pattern holds true of Verstappen, Rosberg, Vettel, and 
+Valteri Bottas. On the other hand, drivers with high average finishing positions were 
+positively correlated to the finishing position. This also makes sense
+
+Notes on Interaction Effect Studies
+
++ it might be interesting to test multiple versions of the year. One
+  version of the year variable can be scaled and used as a measure of time. 
+  For example, how do drivers develop over time, or year in the sport. In 
+  this sense it might be useful to treat the year as a numeric value. 
+  However, regulation cycles and the development of cars tend to be more 
+  categorical in nature. This might be challenging to make use of when 
+  we are dealing with new years though. For exampl, in 2024, we don't have 
+  too much data to build upon. Namely, we only have 24 races throughout the year, 
+  and the time when predictions will be most useful occur well before we get to 
+  the point when all of the data is available. 
++ years since last major regulation change - this will be useful as a 
+  numeric variable, but must be interacted with the teams specifically to 
+  be of any significance to the model. Leaving the variable alone won't be
+  particularly useful to us. However, we may be able to use the regulation 
+  standards and their nature as a proxy for this. These categorical 
+  descriptors are not dependent upon a fixed categorical variable. Instead, 
+  they can be used to describe any given year of F1 competition
+  + we also want to interact `is_major_reg` or `engine_reg`, `tire_reg`, and 
+    `areo_reg` with the teams because different teams may perform 
+    differently given different type of regulation sets. This is especially
+    the case when comparing the performance of teams. For example, Mercedes
+    performed extremely well at the beginning of the 2014 regulation cycle. 
+    This year marked a strong departure from the previous season's results. 
+    However, when the new aerodynamic regulations began in 2022, the 
+    competitive order of the field changed dramatically, with Red Bull becoming
+    the dominant force in F1, alongside Ferrari. 
++ constructor, round, years_since_major_cycle, is_major_reg, regulation type variables
+  + may be interesting to investigate the second order interactions
+  + third order interaction between team, round, and years since major cycle 
+    may also be quite useful in this case
+  + it may be unecessary to investigate `is_major_reg` directly since the 
+    `years_since_major_cycle=0` if this variable is set as `1`
++ weather (wind, precipitation, etc.), constructor
+  + It may be the case that different cosntructors can develop cars which are
+    better or worse suited to performance under different conditions. 
+    For example, teams like Williams have struggled with changable wind conditions.
+    If the wind is strong, it is possible that their performances may be weaker than
+    otherwise would be the case. 
++ weather (precipitation, wind), driver
+  + The driver may also have an effect on performances in wet conditions. Namely, 
+    drivers such as Lando Norris, Lewis Hamilton, Max Verstappen, and others have
+    been known to perform better in the wet relative to their rivals, even 
+    when considering existing performance differentials.
++ driver crossed with previous points may also be a strong predictor. This could
+  also be the case for the constructor points. 
+
+We need to be selective about which variables we choose to incorporate 
+in the final model however, since there is a limited amount of data 
+with which to train an overall model. A deep learning model may be able 
+to extract the important effects given a greater amount of data. 
+
+The strategy we use here is as follows:
+
++ define all of the interaction variables that we are interested in 
+  studying
++ run select K best algorithm to identify the most significant
+  features to retain for our model.
++ train and validate (n-folds) for each of value of $k$ used. Namely, 
+  if we generate 5 different values of $k$, $\{1,2,4,8,10,20,30\}$,
+  we want to train and evaluate each of the models constructed and
+  compare their performance.
+
+The original goal of our study was to examine the influence of the
+constructor and regulation cycle. As such, these are the primary 
+factors I will include as my focus here. Primarily, I want to 
+two terms:
+
+$$
+t_{4} = \text{constructor} \times \text{track characteristic} \times \text{round} \times \text{regulation type} \\
+t_{3} = \text{constructor} \times \text{track characteristic} \times \text{weather condition}
+$$
+
+Each of the track characteristic and regulation type variables have a subset of other variables
+for which we need to test different combinations. Let's start by building up the second order
+interactions though and seeing how those correlate to race outcomes:
+
+```{python}
+# we need lists of these variables so we can create interactions between the encoded
+# categoricals and the other variables of interest
+driver_vars = ['driverId_{}'.format(id) for id in data['driverId'].unique()] 
+construct_vars = ['constructorId_{}'.format(id) for id in data['constructorId'].unique()]
+cycle_vars = ['cycle_{}'.format(id) for id in data['cycle'].unique()]
+
+# test track characteristics - corner_spd_mean, num_fast_corners, num_slow_corners, strt_len_max
+# test all constructors
+# test regulation types - engine_reg, aero_reg, years_since_major_cycle
+#       engine_reg * years_since_major_cycle + engine_reg
+#       aero_reg * years_since_major_cycle + aero_reg
+encoded_dat = get_features(data, ['constructorId','driverId', 'cycle'], select=False)
+```
+
+Now we create the new variables
+
+```{python}
+def add_interaction(data, vars=[], drivers=[], constructors=[]):
+    '''
+    Args:
+    - vars --------- list of the additional variables to include in 
+                     each interaction term. For example, if vars held
+                     track_min_speed and engine_reg, then we would 
+                     generate interaction terms
+                     driver * constructor * engine_reg * track_min_speed
+                     This is always assumed to have at least one 
+                     value held in it
+    - drivers ------ list of drivers to create an interaction term for
+    - constructors - list of constructors to create an interaction term for
+
+    We use copies of the numpy arrays every time because not doing so 
+    will overwrite the original data which would mess everything up
+    '''
+    data2 = data.copy()
+
+    if len(drivers) == 0: drivers.append("any_driver")
+    if len(constructors) == 0: constructors.append("any_constructor")
+    for i in range(len(drivers)):
+        for j in range(i,len(constructors)):
+            # set the initial value for the array
+            interact = data[vars[0]].copy()
+
+            v_string = ""
+            # handle using driver as an interaction
+            if drivers[i] != "any_driver":
+                interact *= data[drivers[i]].copy()
+                drive_val = drivers[i]
+                v_string += f'{drive_val}-'
+
+            # handle using constructor as an interaction 
+            if constructors[j] != "any_constructor":
+                interact *= data[constructors[j]].copy()
+                construct_val = constructors[j]
+                v_string += f'{construct_val}-'
+            
+            v_string += vars[0]
+            for k in range(1, len(vars)):
+                # print('loop executes?')
+                interact *= data[vars[k]].copy()
+                v_string += "-{}".format(vars[k])
+            
+            df = pd.DataFrame({
+                v_string: interact
+            })
+            data2 = pd.concat([data2, df], axis=1)
+            # # add interaction to the dataframe
+            # data[v_string] = interact
+
+    return data2
+```
+
+Because there are so many interaction types to explore, we limit the scope of
+our search space to the following:
+
++ Interactions between constructor, regulation, and cycle 
+  variables
+  + constructor * engine_reg * cycle
+  + constructor * aero_reg * cycle
+  + constructor * years since major reg * round
+  + constructor * years since major reg * round * cycle
+  + constructor * round * cycle
+  + constructor * round
+  + constructor * round * years since major reg
++ Interactions between constructor, track variables, and regulation
+  + constructor * min corner speed * aero_reg * cycle
+  + constructor * min corner speed * engine_reg * cycle
+  + constructor * min corner speed * cycle
+  + constructor * max corner speed * same three reg variables
+  + constructor * windspeed * cycle
+
+We only test the interactions for possible combinations.
+
+```{python}
+'''
+we know that constructor will be interacted with everything, 
+so just feed the same list every time. Leave drivers empty
+'''
+interactions = [
+  ['engine_reg','cycle_2'],
+  ['engine_reg','cycle_3'],
+  ['engine_reg','cycle_4'],
+  ['aero_reg','cycle_2'],
+  ['aero_reg','cycle_3'],
+  ['aero_reg','cycle_4'],
+  ['years_since_major_cycle','cycle_2'],
+  ['years_since_major_cycle','cycle_3'],
+  ['years_since_major_cycle','cycle_4'],
+  ['years_since_major_cycle','round','cycle_2'],
+  ['years_since_major_cycle','round','cycle_3'],
+  ['years_since_major_cycle','round','cycle_4'],
+  ['corner_spd_min','cycle_2','aero_reg'],
+  ['corner_spd_min','cycle_3','aero_reg'],
+  ['corner_spd_min','cycle_4','aero_reg'],
+  ['corner_spd_max','cycle_2','engine_reg'],
+  ['corner_spd_max','cycle_3','engine_reg'],
+  ['corner_spd_max','cycle_4','engine_reg'],
+  ['corner_spd_min','cycle_2'],
+  ['corner_spd_min','cycle_3'],
+  ['corner_spd_min','cycle_4'],
+  ['round','cycle_4'],
+  ['round'],
+  ['round', 'years_since_major_cycle'],
+  ['windspeed','cycle_4']
+]
+
+for interaction in interactions:
+    encoded_dat = add_interaction(encoded_dat, constructors=construct_vars, vars=interaction)
+```
+
+Now that we have added all of the meaningful interactions into the data, 
+we can check which of them are actually useful using the select K best 
+method. Before we do this, we must first finish encoding all of the 
+categorical variables for processing:
+
+```{python}
+# find all categorical variables
+encoded_dat.select_dtypes(include=['object']).columns
+```
+
+None of these categorical variables are particularly useful for the 
+task of predicting the target variables `positionOrder` and 
+`quali_position`, so we can safely drop them from our dataset.
+
+```{python}
+encoded_dat = encoded_dat.drop(['event_name', 'preciptype',
+                                'fastestLap', 'rank',
+                                'fastestLapTime', 'fastestLapSpeed',
+                                'ref_name', 'q1', 'q2', 'q3'],
+                                axis=1)
+
+# drop null values from miscellaneous columns (missing race tracks)
+encoded_dat = encoded_dat.dropna()
+
+# create the actual target variables of interest:
+encoded_dat.loc[(encoded_dat['positionOrder'] <= 3), 'top3r'] = 1
+encoded_dat.loc[(encoded_dat['positionOrder'] > 3), 'top3r'] = 0
+
+encoded_dat.loc[(encoded_dat['quali_position'] <= 3), 'top3q'] = 1
+encoded_dat.loc[(encoded_dat['quali_position'] > 3), 'top3q'] = 0
+```
+
+Before performing feature selection, let us make sure that we have removed all of 
+the target variables (variables present only after qualifying has started)
+from the data
+
+```{python}
+data.columns
+```
+
+Looking at the data, we can see that the `points` value are contained in this
+data as well. Thus, we should remove that variable in addition to teh `positionOrder`,
+`quali_position`, and `top3` and some other post-race informative variables. 
+
+```{python}
+# get the output variables
+y_qual = encoded_dat['quali_position']
+y_race = encoded_dat['positionOrder']
+y_top3_finish = encoded_dat['top3r']
+y_top3_quali = encoded_dat['top3q']
+
+X = encoded_dat.drop(['quali_position','points','top3r','top3q', 'positionOrder',
+                      'statusId', 'grid', 'driverId', 'constructorId',
+                      'laps', 'resultId', 'regulation_id', 'year','raceId'], axis=1)
+```
+
+Additionally, 
+since the data is imbalanced (only 14% of the results are top3 finishes), we should make 
+sure to use SMOTE to improve the balance of the dataset. We need to be careful of categorical
+predictors however, since those will throw off the selection performance quite drastically.
+We need to specify the column indices where categorical variables are held. Otherwise,
+the algorithm will automatically treat each variable as a continuous variable, and 
+generate synthetic data accordingly - this would be unacceptable behavior.
+
+Because of how we have organized the data, we know that the only variables with explicitly 
+binary results are interactions only between two categories, or the categories themselves.
+Namely, this means that we need to obtain the column indices of those which contain 
+"driverId" or "constructorId" in them and no other values:
+
+```{python}
+driv_cons_cycles = []
+for column in X.columns:
+    if not (("constructorId" in column) or ("driverId" in column) or ('cycle' in column)):
+        continue
+    if len(column.split("-")) == 1:
+        driv_cons_cycles.append(column)
+
+cat_indices = []
+for col in driv_cons_cycles:
+    cat_indices.append(X.columns.get_loc(col))
+```
+
+Now we have the categorical indices, so we can pass them to the SMOTENC module 
+to avoid oversampling incorrectly.
+
+```{python}
+# rebalance the data with SMOTE
+from imblearn.over_sampling import SMOTENC
+
+oversample = SMOTENC(categorical_features=cat_indices, random_state=0)
+X2, y_top3_finish2 = oversample.fit_resample(X, y_top3_finish)
+```
+
+Now that we have our variable sets, we can run the `mutual_info_classif()` method from 
+`sklearn` to perform variable selection. This function is used because it 
+automatically estimates the dependency between variables the target variable
+is discrete in nature. Since we are dealing with binary classification, it is 
+appropriate to use this method.
+
+```{python}
+# import the package
+from sklearn.feature_selection import mutual_info_classif
+
+mut_info_score = mutual_info_classif(X2, y_top3_finish2)
+```
+
+Now we combine this with the columns of X to obtain a listing of the features
+we want:
+
+```{python}
+scores = pd.DataFrame({
+  "Feature": X.columns,
+  "Mutual Information": mut_info_score
+})
+```
+
+We can sort the dataframe in descending order to observe the top $k$ most
+important features
+
+```{python}
+scores = scores.sort_values(by='Mutual Information', ascending=False)
+scores.head(20)
+```
+
+We can also use the select K best method to see how that might perform
+at this task:
+
+```{python}
+from sklearn.feature_selection import SelectKBest, f_classif
+
+f_score, f_p_value = f_classif(X2, y_top3_finish2)
+f_scores = pd.DataFrame({
+  "Feature": X.columns,
+  "F_score": f_score,
+  "P_value": f_p_value
+})
+scores = pd.merge(f_scores, scores, on='Feature', how='inner')
+```
+
+sort by the best values selected from f_classif
+
+```{python}
+scores = scores.sort_values(by='F_score', ascending=False)
+scores.head(30)
+```
+
+From the way in which the fittings have resulted, it seems as if the mutual info 
+placed too much emphasis upon the similarity between the weather covariates
+and the response. Although these variables should have an effect upon the 
+race outcomes, their objective correlation to the response is low. 
+As such, we should not prioritize these values when formulating a model. 
+However, `f_classif` makes a much better determination in this regard. 
+As such, we will use the selected classes provided by its run to construct our
+models.
+
+We can of course compare these results with those we obtain from the 
+base data (no smote). We can use the features accumulated from each of
+these models to determine which constructs the most predictively 
+accurate model.
+
+```{python}
+f_score, f_p_value = f_classif(X, y_top3_finish)
+mut_info = mutual_info_classif(X, y_top3_finish)
+
+imbalanced_scores = pd.DataFrame({
+  "Feature": X.columns,
+  "F_score": f_score,
+  "P_value": f_p_value,
+  "mut_info": mut_info
+})
+
+imbalanced_scores = imbalanced_scores.sort_values(by='F_score', ascending=False)
+imbalanced_scores.head(30)
+```
+
+It seems that it is also better to determine the best
+features from the imbalanced (unexpanded) data. These are closer 
+to the original class information, and are probably better
+for overall training. However, this does raise questions about the 
+effectiveness of using SMOTE for model development in this case. 
+However, we can compare a series of models to determine the overall
+highest performing method.
+
+# Model Development and Training
+
+Given our preliminary analysis, we have identified a series of 
+models which will be useful for analysis. Since we want to compare both
+SMOTE and non-smote techniques, we need to extract a test set from the original
+data and use SMOTE exclusively for training. 
+
+We use logistic regression in each case to model the problem (for consistency). 
+Due to potentially strong collinearity between the covariates selected for 
+by all methods, we will use L2 regularization to address codependencies of the 
+involved features. However, is likely that random forrest models would perform 
+strongly in this case due to the number of categorical predictors utilized by the 
+data. 
+
+For each method, we test three model sizes: k=10, k=20, and k=30
+and evaluate the validation performance of each on the test data
+
+SMOTE - using the top $k$ features selected from data 
+where SMOTE has already been performed on the classification data.
+We perform this process both for mutual class info and f_classif metrics.
+
+NON-SMOTE - using the top $k$ using the top $k$ features selected from data 
+where SMOTE has not yet been performed on the classification data.
+We perform this process both for mutual class info and f_classif metrics.
+
+## SMOTE Models
+
+We first import the scikit-learn packages necessary to train the 
+models of interest
+
+```{python}
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, accuracy_score, precision_recall_fscore_support
+```
+
+We also need to create the universal train and test splits for the 
+data to work off of
+
+```{python}
+# get the normal data
+x_train, x_test, y_train, y_test = train_test_split(X, y_top3_finish, test_size=0.2, random_state=42)
+
+# get the oversampled training data
+oversample = SMOTENC(categorical_features=cat_indices, random_state=0)
+x_train_smote, y_train_smote = oversample.fit_resample(x_train, y_train)
+```
+
+define a function for training and validating a model automatically
+
+```{python}
+def train_eval(name:str, method:str, features:list):
+    '''
+    Assumes global access to the training and test data
+    '''
+    x_trn = None
+    y_trn = None
+    x_tst = x_test[features]
+    y_tst = y_test
+
+    if method=="smote":
+      x_trn = x_train_smote[features]
+      y_trn = y_train_smote
+    elif method == "imbalanced":
+      x_trn = x_train
+      y_trn = y_train
+
+    model = LogisticRegression(penalty='l2')
+    model.fit(x_trn, y_trn)
+    pred = model.predict(x_tst)
+    f1 = f1_score(y_tst, pred)
+    acc = accuracy_score(y_tst, pred)
+    precision, recall, fbeta_score, support = precision_recall_fscore_support(y_tst, pred)
+    return f1, acc, precision, recall, fbeta_score
+```
+
+define the models to evaluate as a dictionary
+
+```{python}
+'''
+first index of each list entry is the type of training data to use
+the second entry is the list of features required by the model
+
+Models are labeled as 
+<training-method _ selection-method _ numfeatures _ features-selected-from>
+'''
+smot_mut_scores = scores.sort_values(by='Mutual Information', ascending=False)
+smot_mut_scores = smot_mut_scores.reset_index()
+
+smot_f_scores = scores.sort_values(by="F_score", ascending=False)
+smot_f_scores = smot_f_scores.reset_index()
+
+norm_mut_scores = imbalanced_scores.sort_values(by='mut_info', ascending=False)
+norm_mut_scores = norm_mut_scores.reset_index()
+
+norm_f_scores = imbalanced_scores.sort_values(by='F_score', ascending=False)
+norm_f_scores = norm_f_scores.reset_index()
+
+models = {
+  "smot_mut_30_smot":["smote", smot_mut_scores.loc[:30, 'Feature']],
+  "smot_mut_20_smot":["smote", smot_mut_scores.loc[:20, 'Feature']],
+  "smot_mut_10_smot":["smote", smot_mut_scores.loc[:10, 'Feature']],
+  "smot_mut_30_norm":["smote", norm_mut_scores.loc[:30, 'Feature']],
+  "smot_mut_20_norm":["smote", norm_mut_scores.loc[:20, 'Feature']],
+  "smot_mut_10_norm":["smote", norm_mut_scores.loc[:10, 'Feature']],
+  "smot_f_30_smot": ["smote", smot_f_scores.loc[:30, 'Feature']],
+  "smot_f_20_smot": ["smote", smot_f_scores.loc[:20, 'Feature']],
+  "smot_f_10_smot": ["smote", smot_f_scores.loc[:10, 'Feature']],
+  "smot_f_30_norm": ["smote", norm_f_scores.loc[:30, 'Feature']],
+  "smot_f_20_norm": ["smote", norm_f_scores.loc[:20, 'Feature']],
+  "smot_f_10_norm": ["smote", norm_f_scores.loc[:10, 'Feature']]
+}
+```
+
+Evaluate all models and generate results data
+
+```{python}
+# initialize a dictionary to store the results associate with each model
+model_results = {
+  "model name":[],
+  "accuracy score": [],
+  "f1 score": [],
+  "precision": [],
+  "recall": [],
+  "F beta score": []
+}
+
+for mod in models:
+    f1, acc, precision, recall, fbeta_score = train_eval(mod, models[mod][0], models[mod][1])
+    model_results['model name'].append(mod)
+    model_results['accuracy score'].append(acc)
+    model_results['f1 score'].append(f1)
+    model_results['precision'].append(precision)
+    model_results['recall'].append(recall)
+    model_results['F beta score'].append(fbeta_score)
+```
+
+convert the results into a viewable data frame
+
+```{python}
+results = pd.DataFrame(model_results)
+results
+```
+
+From these, we can see that the highest performing logistic regression 
+model resulted from using a smote expanded training data and features
+selected for the smote data by `f_classif` with the top 20 most important
+features selected (where the selection data was preprocessed with smote).
+
+> NOTE: precision, recall, and F beat score have two values each. The first
+value is the score on predicting class $0$ - lower than 3rd place - and the 
+econd value is the score on predicting class $1$ - finishing 3rd place or 
+higher.
+
+We still need to compare these results against the data without any of the 
+additional features however. 
+
+```{python}
+base_encoded_dat = get_features(base_data, ['constructorId','driverId'], select=False)
+
+base_encoded_dat = base_encoded_dat.drop(['event_name', 'preciptype',
+                                'fastestLap', 'rank',
+                                'fastestLapTime', 'fastestLapSpeed',
+                                'q1', 'q2', 'q3'],
+                                axis=1)
+
+driv_cons_cycles = []
+for column in X.columns:
+    if not (("constructorId" in column) or ("driverId" in column)):
+        continue
+    if len(column.split('-')) == 1:
+        driv_cons_cycles.append(column)
+
+cat_indices = []
+for col in driv_cons_cycles:
+    cat_indices.append(X.columns.get_loc(col))
+
+# drop null values from miscellaneous columns (missing race tracks)
+base_encoded_dat = base_encoded_dat.dropna()
+
+# create the actual target variables of interest:
+base_encoded_dat.loc[(base_encoded_dat['positionOrder'] <= 3), 'top3r'] = 1
+base_encoded_dat.loc[(base_encoded_dat['positionOrder'] > 3), 'top3r'] = 0
+
+base_encoded_dat.loc[(base_encoded_dat['quali_position'] <= 3), 'top3q'] = 1
+base_encoded_dat.loc[(base_encoded_dat['quali_position'] > 3), 'top3q'] = 0
+
+y_qual = base_encoded_dat['quali_position']
+y_race = base_encoded_dat['positionOrder']
+y_top3_finish = base_encoded_dat['top3r']
+y_top3_quali = base_encoded_dat['top3q']
+
+X = base_encoded_dat.drop(['quali_position','points','top3r','top3q', 
+                      'positionOrder',
+                      'statusId', 'grid', 'driverId', 'constructorId',
+                      'laps', 'resultId', 'year','raceId'], axis=1)
+
+# get the normal data
+x_train, x_test, y_train, y_test = train_test_split(X, y_top3_finish, test_size=0.2, random_state=42)
+
+# get the oversampled training data
+oversample = SMOTENC(categorical_features=cat_indices, random_state=0)
+x_train_smote, y_train_smote = oversample.fit_resample(x_train, y_train)
+
+f_score, f_p_value = f_classif(X, y_top3_finish)
+f_scores = pd.DataFrame({
+  "Feature": X.columns,
+  "F_score": f_score,
+  "P_value": f_p_value
+})
+
+f_scores = f_scores.sort_values(by='F_score', ascending=False)
+f_scores = f_scores.reset_index()
+features = f_scores.loc[:20, 'Feature']
+
+f1, acc, precision, recall, fbeta_score = train_eval(name='base', method='smote', features=features)
+
+base_results = pd.DataFrame({
+  "model name": ["baseline model"],
+  "accuracy score": [acc],
+  "f1 score": [f1],
+  "precision": [precision],
+  "recall": [recall],
+  "F beta score": [fbeta_score]
+})
+
+results = pd.concat([results,base_results], axis=0)
+
+# save all of the results to a csv file
+results.to_csv("model_results.csv")
+```
+
+The f1 score and accuracy of this model were $0.538$ and $0.816$ respectively
+which is nearly $0.09$ points lower (f1) than that achieved by the best model
+with the additional features!
+
+If we look at the precision and recall scores specifically, we can 
+see that our optimal model achieves a higher precision on predicting 
+top 3 finishers. Additionally, we achieve a higher positive prediction 
+capability (recall) than the baseline model. Actually, on every 
+metric our optimal model outperforms the baseline. Moreover, this is 
+not only true of the optimal model but of every other model we 
+train as well. What we can see from these results is that our model
+demonstrates a tendency to overpredict positive instances - top3 finishing
+position and fits non-top 3 finishes reasonably well. 
+
+```{python}
+# save model to file
+def save_model(location, model, mod_name, input_features):
+    filename = "{}/{}.pkl".format(location, mod_name)
+    with open(filename, "wb") as f:
+        pickle.dump(model, f)
+    with open("{}/{}_features.pkl".format(location, mod_name), "wb") as f2:
+        pickle.dump(input_features, f2)
+```
+
+The last thing we need to do is analyze the effect of the coefficients.
+Since we are using a logistic regression model, we can interpret the 
+effect of the coefficients as: *for each unit increase in variable $x$,* 
+*the log-odds of increases/decreases by a factor of $coeff$*. If we 
+exponentiate every value $e^{coeff}$ then we can interpret these as
+the $e^{coeff}-1 \cdot 100\%$ change in the odds of finishing in the 
+top 3 positions for a given race. 
+
+> We needed to rerun the following code to get the correct data again:
+
+
+
+```{python}
+# get the output variables
+y_qual = encoded_dat['quali_position']
+y_race = encoded_dat['positionOrder']
+y_top3_finish = encoded_dat['top3r']
+y_top3_quali = encoded_dat['top3q']
+
+X = encoded_dat.drop(['quali_position','points','top3r','top3q','positionOrder',
+                      'statusId', 'grid', 'driverId', 'constructorId',
+                      'laps', 'resultId', 'regulation_id', 'year','raceId'], axis=1)
+
+driv_cons_cycles = []
+for column in X.columns:
+    if not (("constructorId" in column) or ("driverId" in column) or ('cycle' in column)):
+        continue
+    if len(column.split()) == 1:
+        driv_cons_cycles.append(column)
+
+cat_indices = []
+for col in driv_cons_cycles:
+    cat_indices.append(X.columns.get_loc(col))
+
+# get the normal data
+x_train, x_test, y_train, y_test = train_test_split(X, y_top3_finish, test_size=0.2, random_state=42)
+
+# get the oversampled training data
+oversample = SMOTENC(categorical_features=cat_indices, random_state=0)
+x_train_smote, y_train_smote = oversample.fit_resample(x_train, y_train)
+
+feats = models["smot_f_20_smot"][1]
+
+y_trn = y_train
+x_trn = x_train[feats]
+opt_model = LogisticRegression(penalty='l2')
+opt_model.fit(x_trn, y_trn)
+
+coefficients = opt_model.coef_
+```
+
+```{python}
+probs = []
+
+for coefficient in coefficients[0]:
+    if coefficient < 0: 
+        val = -(1 - np.exp(coefficient))
+    elif coefficient > 0:
+        val = np.exp(coefficient) - 1 
+    probs.append(val)
+
+features = pd.DataFrame({
+  "features": x_trn.columns,
+  # "coefficients": coefficients[0],
+  "odds increase / decrease": probs
+})
+
+features
+```
+
+**Primary Covariates**
+
+From here we can interpret the effect of each variable. The constructor
+position has the strongest effect upon the outcome. Namely, for every increase
+in the constructor's current standing, the odds of a result being in the
+top3 decreases by 32%. Moreover, we can see that for every increase in driver
+position (1 to 2 for example), the odds of finishing in the top 3 
+decreases by 8%. Because we use l2 regularization, it is likely that the
+the driver points and constructor points are driven to 0 because of the
+overlap between points and driver standings and positions. Additionally, 
+points values tend to be quite high, so single point differences
+won't make such a significant difference. However, if you have, say,
+400 points, then the probability of a top 3 finish would increase by 
+3.11%. Of course, this seems quite low, but the previous point about 
+regularization still holds true here.
+
+Interestingly, the number of previous constructor wins demonstrates a negative
+relationship to the odds of finishing in the top 3. Specifically, for every
+win the constructor has, the probability of finishing in the top 3 decreases
+by 1.7%. This may be due to the collinearity between different variables
+in the data. Another potential reason for this is that drivers from the
+same team may collectively have a high number of wins, but a significantly
+different probability of finishing in the top 3. For example, in 2023, 
+Max Verstappen won 19 out of 23 races which occurred. However, his teammate 
+Sergio Perez often struggled to finish on the podium (outside of the top3)
+In contrast, for every additional win a driver has, the probability that 
+they would finish in the top3 increases by 12%. This
+is significant, and also expected given our preliminary analysis.
+
+**Regulation and Track Focused Covariates**
+
+The constructor ID 131, associated with Mercedes, indicated a 9% increase
+in the odds of a top 3 finish. This is reasonable given that Mercedes
+dominated F1 from 2014 until 2021, 7 of the 13 years analyzed (2010-2023).
+Additionally, we can see that a unit increase in the interaction between 
+mercedes, cycle 3 (2014-2021) and years since major cycle led to a decrease
+in the odds of a top 3 finish by 7%. This is also reasonable since the
+dominance of Mercedes as a team began to slip as the turbo-hybrid engine
+regulations progressed. This culminated with their eventual defeat
+at the hands of Red Bull in 2021. We can also see that unit increases
+in the interaction between Mercedes and the competition round (race x out of
+24 for a given season) led to a 5.9% drop in the odds of a top 3 finish. 
+
+As far as track specific variables are concerned, the most significant
+of these seemed to be the interaction between a track's minimum corner speed,
+Mercedes, and cycle 3 (2014-2021). In other words, for every unit increase
+in the minimum corner speed for a track (a faster track overall) which
+Mercedes drove at from 2014 to 2021, the odds of a top 3 finish 
+increased by 2.37%. For example, the model indicates that Mercedes would
+have a 256% increase in odds of a top 3 finish at a track with a minimum 
+corner speed of 174km/h versus a track with a minimum corner speed of 66km/h.
+These are the maximum and minimum (min corner speeds) respectively from 
+the data.
+
+We can also see that unit increases in the interaction between constructor 5 
+and round (as the round increased for constructor 5) led to a 12% 
+decrease in the odds of a top 3 finish for the constructor. This indicates
+that the constructor (Toro Rosso) would perform worse over the course of a 
+given season. ConstructorID 10 (Force India) also indicated a decreased odds 
+of a top 3 finish (decrease of 10.6%).
+
+## Caveats of Analysis, Conclusions, and Future Directions
+
+*Caveats*
+
+Because of the large number of potential features, especially
+interactions which could have been fit, it is hard to say with any certainty
+which would have been the most significant or useful. Additionally, the 
+model itself fit more strongly to features which did not appear to be
+especially significant based on the results of the feature selection 
+process.
+
+Additionally, further cross-validation would be required to fully 
+confirm the results of this analysis. However, the performance improvement
+seen across all of the models would seem to indicate the significance
+of the added variables studied in this analysis.
+
+*Conclusions and Future Directions*
+
+This work indicates that track and regulation cycle based variables
+can be predictively useful, even when accounting for prior constructor
+and driver standings (the most significant). Additionally, this highlights
+the importance of using time-relevant data. Although our model is fit
+reasonably well for thisd ata, it may not perform so strongly 
+on more recent data. As such, future models would do well to take advantage
+of more recent samples. Limited data may make it difficult to fit a robust 
+model however. 
+
+Additionally, alternative methods such as random forest classification, 
+xgboosting, and deep learning will likely outperform logistic regression.
+Tree-based models make classifications based off of structured dependencies
+within the data. This means that such a model would likely be able to find
+more optimal interactions between features. Such an approach would eliminate
+the need for manual feature definition as was required here. Deep learning
+methods may also be more capable at learning the important interactions
+and dependencies between covariates. However, due to the limited amount of
+suitable data, it is difficult to say whether this method would outperform
+random forests or not.
+
+Future works would also do well to incorporate more data from 
+weekend based data. F1-weekends include free-practice sessions which 
+provide some insights into the true performance of the cars. Explicit
+session rankings have proven inaccurate in the past, but more nuanced
+analysis of lap times, tires used, and more may prove useful for 
+predicting qualifying and race performances. 
+
+**save the best model**
+
+```{python}
+import pickle 
+
+save_model("pretrained", opt_model, "2010-2023_opt_logit", x_trn.columns)
+```

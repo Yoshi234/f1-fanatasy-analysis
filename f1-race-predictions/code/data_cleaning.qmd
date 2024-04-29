@@ -1,0 +1,379 @@
+---
+title: "Data cleaning Race and Qualifying Outcomes (2010-present)"
+author: Joshua Lee
+format: 
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+---
+
+* Author: Joshua Lee
+* Submission Date: 2024-04-15 / 11:59pm
+
+# Data Cleaning
+
+Need to clean the data for model preparation. All of the code to 
+accomplish this is provided in the setup folder, specifically setup_data.py.
+This automatically cleans and processes the data for the user. 
+
+
+```{python}
+import pandas as pd
+import numpy as np
+```
+
+Read in the data to clean, specifically the races, weather and results data. First we have to read in the data itself. 
+
+```{python}
+folder = "../data"
+raw_data = pd.read_feather("{}/raw_model_data.feather".format(folder))
+```
+
+import the summarize na tool from setup
+
+```{python}
+from setup.tools import summarize_na
+```
+
+Summarize the values with missing data:
+
+```{python}
+summarize_na(raw_data)
+```
+
+As we can see, there are quite a few columns with missing data.
+They each fall into a different category, in terms of their 
+missingness and the reason for their missingness:
+
+**Unecessary Data**
+
+Some of the values from the original data (results, races, etc.) 
+are not especially useful for the model we want to construct. 
+These include things like the free practice, qualifying, and 
+sprint race times and dates. These are not especially useful for 
+what we want to do, so we can simply eliminate them. Of these, 
+qualfiying time and date information would be useful, but since
+so much of that data is missing anyways, we will simply choose 
+to eliminate these fields.
+
+```{python}
+raw_data = raw_data.drop(['fp1_date',
+                          'fp1_time', 
+                          'fp2_date', 
+                          'fp2_time', 
+                          'fp3_date', 
+                          'fp3_time',
+                          'quali_date', 
+                          'quali_time', 
+                          'sprint_date',
+                          'sprint_time'],
+                          axis=1)
+```
+
+Additionally, we have several other fields with missing data.
+Let's first examine the precipitation data:
+
+```{python}
+weather = ['preciptype', 'visibility']
+raw_data[weather].head().T
+```
+
+As you can see, the preciptype column holds the type of the
+precipitation, and the visibility column holds the distance 
+of visibility available. Let's examine what all the unique values
+for precipitation type are - we don't need to examine 
+visibility since we know those will all be continuous numeric
+values:
+
+```{python}
+print(raw_data[weather]['preciptype'].unique())
+```
+
+The first array holds the different weather types: "rain" and 
+"None". We will assume that 'None' indicates no rain occurred
+for the corresponding race event. Thus, we can simply impute
+this data as follows:
+
+```{python}
+raw_data.loc[raw_data['preciptype'].isna(), 'preciptype'] = 'no precip'
+```
+
+We can now see that there are no remaining null values in this column:
+
+```{python}
+raw_data['preciptype'].isna().sum()
+```
+
+For visibility data, we can't assume that the weather data is available. 
+Based on prior work, it doesn't seem like this variable is especially 
+important, so we can likely remove it without consequence
+
+```{python}
+raw_data = raw_data.drop(['visibility'], axis=1)
+```
+
+The next class of variables to deal with is extraneous, unecessary 
+race-related variables. If you look at the columns which remain, you 
+will see some of these:
+
+```{python}
+raw_data.columns
+```
+
+Namely, we would like to eliminate the following:
+
++ `circuitRef` - we only need the circuitId for encoding
++ `circuit_name` - again, we only need the circuitId for encoding
++ `location` - not useful
++ `country` - not useful
++ `lat` - not useful
++ `lng` - not useful
++ `url_x` - not useful 
++ `url_y` - not useful
++ `date` - we have already embedded the useful weather information
++ `race_start_time` - we already have the useful weather related info
++ `datetime` - not useful
++ `precipprob` - only 100% or 0% (binary indicator of weather 
+  there was precipitation)
++ `number` - the driver number is not useful (we just need driver Id's)
++ `position` and `positionText` - redundant and less reliable than 
+  `positionOrder`
++ `race_duration` - missing 50% of the samples, not necessary for 
+  predictions. We only need the raw millisecond finishing time. However
+  a significant proportion of that data is missing as well, so we will 
+  need to remove that variable as well
++ `milliseconds` - missing 50% of the data
+
+```{python}
+raw_data = raw_data.drop(['circuitRef', 'circuit_name',
+                          'location', 'country', 'lat',
+                          'lng', 'url_x', 'url_y', 'date',
+                          'race_start_time', 'datetime', 
+                          'precipprob', 'number', 'position',
+                          'positionText', 'race_duration', 
+                          'milliseconds'], axis=1)
+summarize_na(raw_data)
+```
+
+Now you can see that the majority of fields with missing data belong to 
+the track summary descriptors. The reason for this is that some tracks
+raced at from 2010 until 2018, were not raced at from 2018 to 2023. Thus,
+the FastF1 api did not provide data for some of the tracks. However, 
+this percentage is relatively low. As such, we can safely drop any records
+for races at tracks which haven't been raced at before. 
+
+```{python}
+raw_data.loc[raw_data['ref_year'].isna(), 'circuitId'].unique()
+```
+
+As you can see, there are four tracks in particular which were not raced 
+at from the year 2018 to 2023. 
+
+```{python}
+raw_data = raw_data.loc[raw_data['ref_year'].notna()]
+summarize_na(raw_data)
+```
+
+This significantly reduces the number of missing fields across all 
+of the data. However, we still have some missing fields. Specifically,
+we have some missing altitude data, and some missing driver standings
+information. We may be able to fill this data based on the finishing
+position of the driver, and the prev_driver_points field which follows
+the race of interest. 
+
+```{python}
+fields = ['driverId', 'round', 'prev_round', 'year']
+raw_data.loc[raw_data['prev_driver_points'].isna(), fields]
+```
+
+Here we can see a list of all the records with missing driver standings
+information. Let's pick out a specific example to try and see if we can
+impute any of this data
+
+```{python}
+raw_data.loc[(raw_data['driverId'] == 20) &
+             (raw_data['prev_driver_points'].isna()),
+             fields]
+```
+
+It appears that only one field is missing for driver 20. This means
+that we can look to the next round and use the previous round score to 
+calculate the prev_driver_points and wins for this race!
+
+```{python}
+fill_fields = ['prev_driver_points', 'prev_driver_wins',
+               'prev_driver_position']
+raw_data.loc[(raw_data['driverId'] == 20) &
+             (raw_data['round'] == 4) & 
+             (raw_data['year'] == 2022), fill_fields]
+```
+
+In this case, we can see that the driver had no points or wins before the 
+race in question. As such, we would impute the fields for the previous 
+event as `prev_driver_points_next_round - prev_driver_points_prev_round`
+and `prev_driver_wins_next_round - prev_driver_wins_prev_round`. The 
+driver position may be a bit more tricky to impute. As a starting point, 
+we can use the points from the missing race, and use 
+
+```{python}
+raw_data.loc[(raw_data['round'] == 3) & 
+             (raw_data['year'] == 2022), 
+             ['points', 'positionOrder', 'driverId']]
+```
+
+Basically, if the points are equal to zero, then the highest finishing
+position is taken as the default rank. But, it is hard to do this 
+for a single record. As such, we should just use the same finishing as 
+indicated by the next round's `prev_driver_position` value. 
+
+```{python}
+def fill_driver_dat(data:pd.DataFrame, missing:pd.DataFrame):
+    '''
+    missing contains fields: driverId, round, prev_round, and year
+    '''
+    for idx, record in missing.iterrows():
+        cur_values = data.loc[(data['driverId'] == record['driverId'].item()) &
+                              (data['round'] == record['round'].item()) & 
+                              (data['year'] == record['year'].item()),
+                              ['points', 'positionOrder']]
+        pts = cur_values['points'].item()
+        fp = cur_values['positionOrder'].item()
+        win = 0
+        # set a win indicator for missing entries
+        if fp == 1: win = 1
+
+        # get the prev_round points data from the record which isn't missing
+        next_values = data.loc[(data['driverId'] == record['driverId'].item()) &
+                              (data['round'] == record['round'].item() + 1) & 
+                              (data['year'] == record['year'].item()), 
+                              ['prev_driver_points', 'prev_driver_position',
+                               'prev_driver_wins']]
+
+        # deal with values that don'thave a consecutive round to reference
+        if len(next_values) == 0:
+           final_pos = data.loc[(data['year'] == record['year'].item()) &
+                                (data['round'] == record['round'].item()),
+                                'prev_driver_position'].max()
+           data.loc[(data['driverId'] == record['driverId'].item()) &
+                    (data['round'] == record['round'].item()) & 
+                    (data['year'] == record['year'].item()), 
+                    ['prev_driver_points', 'prev_driver_wins',
+                     'prev_driver_position']] = [0, 0, final_pos]
+           continue
+
+        fill_wins = next_values['prev_driver_wins'].item() - win
+        fill_pts = next_values['prev_driver_points'].item() - pts
+        fill_pos = next_values['prev_driver_position'].item()
+
+        data.loc[(data['driverId'] == record['driverId'].item()) &
+                 (data['round'] == record['round'].item()) & 
+                 (data['year'] == record['year'].item()), 
+                 ['prev_driver_points', 'prev_driver_wins',
+                  'prev_driver_position']] = [fill_pts, fill_wins, fill_pos]
+
+    return data
+```
+
+Running this on the `raw_data` removes all of the missing variables we were worried
+about previously:
+
+```{python}
+# get missing values
+fields = ['driverId', 'round', 'prev_round', 'year']
+missing = raw_data.loc[raw_data['prev_driver_points'].isna(), fields]
+
+# fill missing records
+raw_data = fill_driver_dat(raw_data, missing)
+
+# show new missing summary
+summarize_na(raw_data)
+```
+
+The last variable we need to fill is the `alt`, or altitude variable (altitude) 
+of the track. The fastest lap data (`fastestLap`, `rank` (the rank of a driver's 
+fastest lap), `fastestLapTime`, and `fastestLapSpeed`) is not critical to our analysis
+since they are post-race variables - things we might predict - but are not useful 
+for predicting outcomes ahead of time.
+
+```{python}
+raw_data.loc[raw_data['alt'].isna(), ['event_name', 'year']].drop_duplicates()
+```
+
+Using an online lookup tool, we can see that the elevation for the "Miami Grand Prix"
+(both years) is 13 meters, and the elevation for the "Qatar Grand Prix" is 12 meters.
+See this link for the calculator tool used for this estimation: 
+[GPS Elevation](https://www.dcode.fr/earth-elevation)
+
+```{python}
+raw_data.loc[(raw_data['alt'].isna()) & 
+             (raw_data['event_name'] == 'Miami Grand Prix'),
+             'alt'] = 13
+raw_data.loc[(raw_data['alt'].isna()) &
+             (raw_data['event_name'] == 'Qatar Grand Prix'),
+             'alt'] = 12
+
+# set the correct type on the column?
+raw_data['alt'] = raw_data['alt'].astype('float64')
+
+# show missing data summary
+summarize_na(raw_data)
+```
+
+Now we have a clean dataset to start working with! We save it to the data folder
+in the repository as follows:
+
+```{python}
+raw_data.to_feather("../data/clean_model_data.feather")
+```
+
+Ultimately, we are left with 5,343 records, each with 67 attributes
+to train models and analyze. The number of attributes will expand 
+significantly when we one-hot encode the categorical variables, 
+specifically the constructorId, driverId, and circuitId. Actually, 
+we may ignore the `circuitId` encoding since it is likely the 
+case that all of the track summary data uniquely encodes each circuit
+anyways.
+
+The last step which we need to conduct before beginning our modeling
+experiments is to get the qualifying outcome variable:
+
+```{python}
+quali = pd.read_csv("../data/qualifying.csv")
+```
+
+```{python}
+summarize_na(quali)
+```
+
+We need to rename the important variable in here, which is the position.
+Everything else we can drop because we don't expect to know those 
+values before qualifying occurs. Alternatively, we could use those as
+response variable to predict (part of a sequential predictor model).
+
+```{python}
+quali.drop(['number','qualifyId'], axis=1, inplace=True)
+quali.rename(columns={'position':'quali_position'}, inplace=True)
+full_dat = pd.merge(raw_data, quali, on=['raceId', 
+                                         'driverId',
+                                         'constructorId'], how='left')
+```
+
+Let's fill every missing qualifying value with the corresponding starting
+grid position. This seems like the most logical imputation strategy
+since these drivers clearly did not qualify for some reason:
+
+```{python}
+missing_quali = full_dat.loc[full_dat['quali_position'].isna()]
+for idx, record in missing_quali.iterrows():
+    full_dat.loc[(full_dat['driverId'] == record['driverId']) &
+                 (full_dat['round'] == record['round']) & 
+                 (full_dat['year'] == record['year']),
+                 'quali_position'] = record['grid']
+```
+
+Now, we finally have a complete dataset
+
+```{python}
+full_dat.to_feather('../data/clean_model_data.feather')
+```
