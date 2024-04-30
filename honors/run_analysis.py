@@ -427,7 +427,7 @@ def load_and_run_model(event_date=None):
             year, min_value_row['RoundNumber'].item())
     
 def main():
-    results, event, year, round_num = load_and_run_model(event_date='2024-04-19')
+    results, event, year, round_num = load_and_run_model()
     if results is None: 
         return
     else: 
