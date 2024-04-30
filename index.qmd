@@ -2,6 +2,6 @@
 title: "F1-race-predictions"
 ---
 
-This is a Quarto website.
-
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Welcome to F1-race-predictions! See [predictions](honors/outcomes.qmd) for the 
+most recent race predictions. If you would like more information about the 
+modeling process used, see [about](about.qmd)

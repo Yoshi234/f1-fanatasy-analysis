@@ -59,6 +59,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -105,7 +108,13 @@ ul.task-list li input[type="checkbox"] {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#predictions-and-problem-formulation" id="toc-predictions-and-problem-formulation" class="nav-link active" data-scroll-target="#predictions-and-problem-formulation">Predictions and Problem Formulation</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -127,9 +136,249 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<p>About this site</p>
+<p>F1 is a racing series where the best drivers and teams from across the world come together to compete. In fact, F1 is widely recognized as the most prestigious motorsport series in the world. This series has been running for a long time, but has recently experienced an explosion in popularity due to the publication of limited run tv-series, “Drive to Survive” as well as the extended marketing reach provided by social media platforms such as YouTube, Twitter, Instagram, and Reddit (just to name a few).</p>
+<p>As the sport has continued to grow, so has the sports betting and fantasy sports scene. For example, on Reddit, users compete in a series of race-by-race prediction challenges. In these challenges, participants predict race-weekend outcomes such as pole position qualifier (which driver achieved the fastest lap time during qualifying), race winner, and other relevant statistics. Moreover, F1 itself provides a fantasy sports competition where users construct teams from the available manufacturers and drivers (with certain restrictions) to achieve the highest point totals over the course of a given year.</p>
+<p>Naturally, this extends to sports betting where the prediction of race outcomes and driver performances can have significant financial implications.</p>
+<p>A significant amount of research has been conducted towards this end. Namely, autocoder-decoder and MLP networks have been developed for <a href="https://ieeexplore.ieee.org/abstract/document/9460538">rank position forecasting</a>, Bayesian regression methods developed for predicting <a href="https://www.degruyter.com/document/doi/10.1515/jqas-2022-0021/html">race finishing positions</a>, and analytical approaches constructed to <a href="https://www.degruyter.com/document/doi/10.1515/jqas-2013-0031/html">account for the combined effect of both driver and car</a> on race performances.</p>
+<p>This website has been designed to automatically generate predictions for each race of the 2024 F1 season and potentially beyond (depends on whether I decide to provide continued support for it or not).</p>
+<section id="predictions-and-problem-formulation" class="level2">
+<h2 class="anchored" data-anchor-id="predictions-and-problem-formulation">Predictions and Problem Formulation</h2>
+<p>To simplify the problem of race outcome prediction, I established two classes: <strong>top 3</strong> and <strong>bottom 17</strong>. In other words, if a driver is predicted to finish in the top 3 positions (on the podium), then they would be classified as “top 3”, otherwise they would be classified as “bottom 17”. To model this binary classification problem, I used logistic regression under the following setting:</p>
+<ul>
+<li>data from the fastf1 api used for generating track summary information
+<ul>
+<li>minimum corner speed</li>
+<li>average track speed</li>
+<li>etc.</li>
+</ul></li>
+<li>data from the visual crossing api used for generating weather information (windspeed)</li>
+<li>ergast data compiled on kaggle for the F1 2022 and 2023 seasons</li>
+<li>subjective regulation change significance - <code>aero_reg</code>
+<ul>
+<li>the higher these scores, the more significant the regulation change was which occurred going into a particular season of F1</li>
+</ul></li>
+</ul>
+<p>Because the modeling problem is imbalanced (14% of results are top 3 finishes), I used SMOTE (synthetic minority over-sampling technique) in order to improve the balance of the data. F-scores were then obtained for the signficance of each candidate feature and the top 30 features were fitted for the final model. A test train split of 80-20 was used.</p>
+<p>This model achieves an accuracy of 0.8971, and an f1-score of 0.7308. The features, their coefficients, and the odds-increase / decrease associated with each are provided as follows:</p>
+<div class="cell" data-execution_count="1">
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div>
 
 
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">features</th>
+<th data-quarto-table-cell-role="th">coefficients</th>
+<th data-quarto-table-cell-role="th">odds increase / decrease</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">7</td>
+<td>prev_driver_position</td>
+<td>-0.169095</td>
+<td>-0.155571</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">8</td>
+<td>prev_construct_position</td>
+<td>-0.089435</td>
+<td>-0.085553</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>constructorId_9-strt_len_median</td>
+<td>-0.011137</td>
+<td>-0.011075</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>prev_construct_points</td>
+<td>-0.007542</td>
+<td>-0.007513</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>driverId_844-aero_reg</td>
+<td>-0.006534</td>
+<td>-0.006512</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>constructorId_9-avg_track_spd</td>
+<td>-0.003273</td>
+<td>-0.003268</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>constructorId_9-corner_spd_min</td>
+<td>-0.003105</td>
+<td>-0.003100</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>constructorId_9-windspeed</td>
+<td>-0.001691</td>
+<td>-0.001690</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25</td>
+<td>driverId_815</td>
+<td>-0.001439</td>
+<td>-0.001438</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>constructorId_9-corner_spd_min-aero_reg</td>
+<td>-0.000762</td>
+<td>-0.000762</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>constructorId_9-years_since_major_cycle-round</td>
+<td>-0.000129</td>
+<td>-0.000129</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>constructorId_9-round-years_since_major_cycle</td>
+<td>-0.000129</td>
+<td>-0.000129</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>constructorId_9-years_since_major_cycle</td>
+<td>0.000005</td>
+<td>0.000005</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>constructorId_9-strt_len_max</td>
+<td>0.000255</td>
+<td>0.000255</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>constructorId_9-corner_spd_max</td>
+<td>0.000286</td>
+<td>0.000286</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>constructorId_9</td>
+<td>0.000595</td>
+<td>0.000595</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">17</td>
+<td>constructorId_9-num_fast_corners</td>
+<td>0.000747</td>
+<td>0.000747</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">18</td>
+<td>constructorId_9-aero_reg</td>
+<td>0.000825</td>
+<td>0.000825</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1</td>
+<td>constructorId_9-circuit_len</td>
+<td>0.000994</td>
+<td>0.000995</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>constructorId_6-corner_spd_min-aero_reg</td>
+<td>0.001186</td>
+<td>0.001187</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>constructorId_9-num_slow_corners</td>
+<td>0.001399</td>
+<td>0.001400</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>constructorId_131-corner_spd_min-aero_reg</td>
+<td>0.001531</td>
+<td>0.001533</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">15</td>
+<td>driverId_830</td>
+<td>0.002034</td>
+<td>0.002036</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">0</td>
+<td>constructorId_9-num_corners</td>
+<td>0.002251</td>
+<td>0.002254</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>prev_construct_wins</td>
+<td>0.003298</td>
+<td>0.003304</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>prev_driver_wins</td>
+<td>0.003342</td>
+<td>0.003348</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>constructorId_9-round</td>
+<td>0.003805</td>
+<td>0.003813</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">28</td>
+<td>driverId_844-strt_len_median</td>
+<td>0.004471</td>
+<td>0.004481</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">3</td>
+<td>constructorId_9-max_track_spd</td>
+<td>0.006688</td>
+<td>0.006711</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">26</td>
+<td>constructorId_6-aero_reg</td>
+<td>0.008188</td>
+<td>0.008221</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>prev_driver_points</td>
+<td>0.014778</td>
+<td>0.014887</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>Note that constructor and driver ids listed correspond to the following:</p>
+<ul>
+<li><code>constructorId_9</code>: Red Bull Racing</li>
+<li><code>constructorId_6</code>: Ferrari</li>
+<li><code>constructorId_131</code>: Mercedes</li>
+<li><code>driverId_830</code>: Max Verstappen</li>
+<li><code>driverId_844</code>: Charles Leclerc</li>
+<li><code>driverId_815</code>: Sergio Perez</li>
+</ul>
+
+
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

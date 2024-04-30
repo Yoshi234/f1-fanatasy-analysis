@@ -2,4 +2,82 @@
 title: "About"
 ---
 
-About this site
+F1 is a racing series where the best drivers and teams from across the world
+come together to compete. In fact, F1 is widely recognized as the most prestigious
+motorsport series in the world. This series has been running for a long time, 
+but has recently experienced an explosion in popularity due to the publication of 
+limited run tv-series, "Drive to Survive" as well as the extended marketing reach
+provided by social media platforms such as YouTube, Twitter, Instagram, and 
+Reddit (just to name a few).
+
+As the sport has continued to grow, so has the 
+sports betting and fantasy sports scene. For example, on Reddit, users 
+compete in a series of race-by-race prediction challenges. In these challenges,
+participants predict race-weekend outcomes such as pole position qualifier 
+(which driver achieved the fastest lap time during qualifying), race winner,
+and other relevant statistics. Moreover, F1 itself provides a fantasy sports
+competition where users construct teams from the available manufacturers
+and drivers (with certain restrictions) to achieve the highest point totals 
+over the course of a given year. 
+
+Naturally, this extends to sports betting where the 
+prediction of race outcomes and driver performances can have significant 
+financial implications.
+
+A significant amount of research has been conducted towards this end. Namely,
+autocoder-decoder and MLP networks have been developed for
+[rank position forecasting](https://ieeexplore.ieee.org/abstract/document/9460538),
+Bayesian regression methods developed for predicting 
+[race finishing positions](https://www.degruyter.com/document/doi/10.1515/jqas-2022-0021/html),
+and analytical approaches constructed to 
+[account for the combined effect of both driver and car](https://www.degruyter.com/document/doi/10.1515/jqas-2013-0031/html) 
+on race performances.
+
+This website has been designed to automatically generate predictions for 
+each race of the 2024 F1 season and potentially beyond (depends on whether 
+I decide to provide continued support for it or not). 
+
+## Predictions and Problem Formulation
+
+To simplify the problem of race outcome prediction, I established two classes: 
+**top 3** and **bottom 17**. In other words, if a driver is predicted to finish
+in the top 3 positions (on the podium), then they would be classified as "top 3", 
+otherwise they would be classified as "bottom 17". To model this binary 
+classification problem, I used logistic regression under the following setting:
+
++ data from the fastf1 api used for generating track summary information
+    + minimum corner speed
+    + average track speed
+    + etc.
++ data from the visual crossing api used for generating weather information (windspeed)
++ ergast data compiled on kaggle for the F1 2022 and 2023 seasons
++ subjective regulation change significance - `aero_reg` 
+    + the higher these scores, the more significant the regulation change was
+      which occurred going into a particular season of F1
+
+Because the modeling problem is imbalanced (14% of results are top 3 finishes), 
+I used SMOTE (synthetic minority over-sampling technique) in order to 
+improve the balance of the data. F-scores were then obtained for the signficance
+of each candidate feature and the top 30 features were fitted for the 
+final model. A test train split of 80-20 was used. 
+
+This model achieves an accuracy of 0.8971, and an f1-score of 0.7308. The features,
+their coefficients, and the odds-increase / decrease associated with 
+each are provided as follows:
+
+```{python}
+#| echo: false
+import pandas as pd
+
+model_features = pd.read_csv("code/2022-2023_opt_model_features.csv").sort_values(by='odds increase / decrease', ascending=True)
+model_features
+```
+
+Note that constructor and driver ids listed correspond to the following:
+
++ `constructorId_9`: Red Bull Racing
++ `constructorId_6`: Ferrari
++ `constructorId_131`: Mercedes
++ `driverId_830`: Max Verstappen
++ `driverId_844`: Charles Leclerc
++ `driverId_815`: Sergio Perez

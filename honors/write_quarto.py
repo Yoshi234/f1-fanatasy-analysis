@@ -91,8 +91,11 @@ of the drivers in the current standings for F1.
 #| echo: false
 import pandas as pd
 
+# display the predictions
 results = pd.read_csv("new_results.csv")
-results.sort_values(by="prob of top 3 finish", ascending=False).reset_index()
+results = results.sort_values(by="prob of top 3 finish", ascending=False).reset_index()
+results['rank'] = results['index'] + 1
+results
 ```
 
 We can see here that the top 3 predicted finishers are:
