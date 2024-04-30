@@ -16,22 +16,22 @@
   {
     "objectID": "honors/outcomes.html",
     "href": "honors/outcomes.html",
-    "title": "F1-Analysis for the 2024 Miami Grand Prix",
+    "title": "F1-Analysis for the 2024 Chinese Grand Prix",
     "section": "",
     "text": "track layout and speeds\n\n\nAnalysis for conducted using a logistic regression with 30 features for additional information about the modeling process, please send me a message on GitHub issues"
   },
   {
     "objectID": "honors/outcomes.html#track-layout-information",
     "href": "honors/outcomes.html#track-layout-information",
-    "title": "F1-Analysis for the 2024 Miami Grand Prix",
+    "title": "F1-Analysis for the 2024 Chinese Grand Prix",
     "section": "",
     "text": "track layout and speeds\n\n\nAnalysis for conducted using a logistic regression with 30 features for additional information about the modeling process, please send me a message on GitHub issues"
   },
   {
     "objectID": "honors/outcomes.html#top3-finishing-position-predictions",
     "href": "honors/outcomes.html#top3-finishing-position-predictions",
-    "title": "F1-Analysis for the 2024 Miami Grand Prix",
+    "title": "F1-Analysis for the 2024 Chinese Grand Prix",
     "section": "Top3 Finishing Position Predictions",
-    "text": "Top3 Finishing Position Predictions\nThe table below presents odds of placing in the top 3 positions for each of the drivers in the current standings for F1.\n\n\n\n\n\n\n\n\n\nprob of top 3 finish\nprob of bottom 17 finish\ndriver name\n\n\n\n\n0\n0.995074\n0.004926\nMax Verstappen\n\n\n2\n0.991721\n0.008279\nSergio Perez\n\n\n3\n0.534070\n0.465930\nCharles Leclerc\n\n\n4\n0.326681\n0.673319\nCarlos Sainz\n\n\n1\n0.269282\n0.730718\nLando Norris\n\n\n5\n0.236419\n0.763581\nGeorge Russell\n\n\n7\n0.190288\n0.809712\nOscar Piastri\n\n\n6\n0.160506\n0.839494\nFernando Alonso\n\n\n8\n0.141103\n0.858897\nLewis Hamilton\n\n\n14\n0.089663\n0.910337\nLance Stroll\n\n\n18\n0.086513\n0.913487\nYuki Tsunoda\n\n\n9\n0.066313\n0.933687\nNico Hulkenberg\n\n\n15\n0.054260\n0.945740\nKevin Magnussen\n\n\n10\n0.043365\n0.956635\nEsteban Ocon\n\n\n11\n0.033820\n0.966180\nAlexander Albon\n\n\n12\n0.031311\n0.968689\nPierre Gasly\n\n\n13\n0.022315\n0.977685\nGuanyu Zhou\n\n\n17\n0.021601\n0.978399\nDaniel Ricciardo\n\n\n16\n0.020641\n0.979359\nLogan Sargeant\n\n\n19\n0.013557\n0.986443\nValtteri Bottas\n\n\n\n\n\n\n\nWe can see here that the top 3 predicted finishers are:\n\nMax Verstappen : probability of top 3 finish - 99.51%\nSergio Perez : probability of top 3 finish - 99.17%\nCharles Leclerc : probability of top 3 finish - 53.41%"
+    "text": "Top3 Finishing Position Predictions\nThe table below presents odds of placing in the top 3 positions for each of the drivers in the current standings for F1.\n\n\n\n\n\n\n\n\n\nprob of top 3 finish\nprob of bottom 17 finish\ndriver name\n\n\n\n\n0\n0.984841\n0.015159\nMax Verstappen\n\n\n1\n0.978173\n0.021827\nSergio Perez\n\n\n3\n0.634739\n0.365261\nCharles Leclerc\n\n\n2\n0.332787\n0.667213\nCarlos Sainz\n\n\n4\n0.250049\n0.749951\nLando Norris\n\n\n7\n0.207291\n0.792709\nOscar Piastri\n\n\n6\n0.202287\n0.797713\nGeorge Russell\n\n\n5\n0.177114\n0.822886\nFernando Alonso\n\n\n8\n0.148294\n0.851706\nLewis Hamilton\n\n\n11\n0.094066\n0.905934\nLance Stroll\n\n\n9\n0.086513\n0.913487\nYuki Tsunoda\n\n\n10\n0.065866\n0.934134\nNico Hulkenberg\n\n\n12\n0.054648\n0.945352\nKevin Magnussen\n\n\n13\n0.043365\n0.956635\nValtteri Bottas\n\n\n14\n0.033820\n0.966180\nEsteban Ocon\n\n\n15\n0.028709\n0.971291\nPierre Gasly\n\n\n17\n0.022529\n0.977471\nGuanyu Zhou\n\n\n16\n0.022315\n0.977685\nLogan Sargeant\n\n\n18\n0.021601\n0.978399\nDaniel Ricciardo\n\n\n19\n0.013557\n0.986443\nAlexander Albon\n\n\n\n\n\n\n\nWe can see here that the top 3 predicted finishers are:\n\nMax Verstappen : probability of top 3 finish - 98.48%\nSergio Perez : probability of top 3 finish - 97.82%\nCharles Leclerc : probability of top 3 finish - 63.47%"
   }
 ]

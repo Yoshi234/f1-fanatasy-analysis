@@ -249,7 +249,7 @@ def add_interaction(data, vars=[], drivers=[], constructors=[]):
             # print(v_string)
     return data2    
 
-def load_and_run_model():
+def load_and_run_model(event_date=None):
     '''
     Runs the model from a specified .pkl file
 
@@ -259,9 +259,15 @@ def load_and_run_model():
     mod, features = load_model("../code/pretrained", "smot_f_30_norm")
 
     # get the current date
-    today = datetime.now()
-    year = today.year
-    schedule = fastf1.get_event_schedule(year)
+    if event_date is None:
+        today = datetime.now()
+        year = today.year
+        schedule = fastf1.get_event_schedule(year)
+    
+    else:
+        today = datetime.strptime(event_date, "%Y-%m-%d")
+        year = today.year
+        schedule = fastf1.get_event_schedule(year)
 
     # find the closest event to the current date (in the future)
     for idx, evnt in schedule.iterrows():
@@ -421,7 +427,7 @@ def load_and_run_model():
             year, min_value_row['RoundNumber'].item())
     
 def main():
-    results, event, year, round_num = load_and_run_model()
+    results, event, year, round_num = load_and_run_model(event_date='2024-04-19')
     if results is None: 
         return
     else: 
