@@ -94,7 +94,8 @@ import pandas as pd
 # display the predictions
 results = pd.read_csv("new_results.csv")
 results = results.sort_values(by="prob of top 3 finish", ascending=False).reset_index()
-results['rank'] = results['index'] + 1
+results.rename(columns={"index":"rank"}, inplace=True)
+results['rank'] = results['rank'] + 1
 results
 ```
 
