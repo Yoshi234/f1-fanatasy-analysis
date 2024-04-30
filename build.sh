@@ -1,3 +1,4 @@
+conda activate R_env
 CUR_DIR=$(pwd)
 cd honors
 ./f1_analysis.sh
