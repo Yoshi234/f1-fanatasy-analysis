@@ -1,4 +1,4 @@
-conda init
+eval "$(conda shell.bash hook)"
 conda activate R_env
 CUR_DIR=$(pwd)
 cd honors
