@@ -1,6 +1,0 @@
-# F1-Analysis
-
-> All analysis performed here utilizes data available publicly via the fastf1 
-API and kaggle (collected from ergast)
-
-Analysis is performed for 
