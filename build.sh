@@ -1,3 +1,4 @@
+cd /home/jjl20011/snap/snapd-desktop-integration/current/Lab/Projects/sports-analysis/f1-fanatasy-analysis
 eval "$(conda shell.bash hook)"
 conda activate R_env
 CUR_DIR=$(pwd)
