@@ -5,3 +5,6 @@ title: "F1-race-predictions"
 Welcome to F1-race-predictions! See [predictions](honors/outcomes.qmd) for the 
 most recent race predictions. If you would like more information about the 
 modeling process used, see [about](about.qmd)
+
+See the official F1 website for more information about the 2024 race schedule, 
+standings, and more: [f1.com](https://www.formula1.com/en/racing/2024.html)
