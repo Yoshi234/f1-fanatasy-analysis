@@ -73,9 +73,9 @@ def write_quarto():
 
     # the main text to write to the quarto file for running later
     main_text = f'''
-F1-Analysis for the {year} {event}
+# F1-Analysis for the {year} {event}
 
-# Track Layout / Information
+## Track Layout / Information
 
 ![track layout and speeds](track.png){{fig-align="center"}}
 

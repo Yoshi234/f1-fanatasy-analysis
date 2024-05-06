@@ -1,7 +1,7 @@
 
-F1-Analysis for the 2024 Emilia Romagna Grand Prix
+# F1-Analysis for the 2024 Emilia Romagna Grand Prix
 
-# Track Layout / Information
+## Track Layout / Information
 
 ![track layout and speeds](track.png){fig-align="center"}
 
