@@ -63,7 +63,7 @@ def write_quarto():
 
     # set important stats
     top3 = results.sort_values(by='prob of top 3 finish', ascending=False)
-    top3 = top3.loc[:3].reset_index()
+    top3 = top3.reset_index().loc[:2]
 
     # get the year and fastest lap of the most recent year as reference
     track_dat = pd.read_feather("../data/track_data.feather")
@@ -72,9 +72,10 @@ def write_quarto():
     set_fig(track)
 
     # the main text to write to the quarto file for running later
-    main_text = f'''# F1-Analysis for the {year} {event}
+    main_text = f'''
+F1-Analysis for the {year} {event}
 
-## Track Layout / Information
+# Track Layout / Information
 
 ![track layout and speeds](track.png){{fig-align="center"}}
 
@@ -94,7 +95,7 @@ import pandas as pd
 # display the predictions
 results = pd.read_csv("new_results.csv")
 results = results.sort_values(by="prob of top 3 finish", ascending=False).reset_index()
-results.rename(columns={"index":"rank"}, inplace=True)
+results.rename(columns={{"index":"rank"}}, inplace=True)
 results["rank"] = results["rank"] + 1
 results
 ```

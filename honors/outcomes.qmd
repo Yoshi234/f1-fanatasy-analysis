@@ -1,6 +1,7 @@
-# F1-Analysis for the 2024 Miami Grand Prix
 
-## Track Layout / Information
+F1-Analysis for the 2024 Emilia Romagna Grand Prix
+
+# Track Layout / Information
 
 ![track layout and speeds](track.png){fig-align="center"}
 
@@ -17,16 +18,17 @@ of the drivers in the current standings for F1.
 #| echo: false
 import pandas as pd
 
+# display the predictions
 results = pd.read_csv("new_results.csv")
 results = results.sort_values(by="prob of top 3 finish", ascending=False).reset_index()
 results.rename(columns={"index":"rank"}, inplace=True)
-results['rank'] = results['rank'] + 1
+results["rank"] = results["rank"] + 1
 results
 ```
 
 We can see here that the top 3 predicted finishers are:
     
-+ Max Verstappen : probability of top 3 finish - 99.51%
-+ Sergio Perez : probability of top 3 finish - 99.17%
-+ Charles Leclerc : probability of top 3 finish - 53.41%
++ Max Verstappen : probability of top 3 finish - 95.79%
++ Sergio Perez : probability of top 3 finish - 92.51%
++ Charles Leclerc : probability of top 3 finish - 67.46%
     
