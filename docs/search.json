@@ -23,22 +23,22 @@
   {
     "objectID": "honors/outcomes.html",
     "href": "honors/outcomes.html",
-    "title": "F1-Analysis for the 2024 Emilia Romagna Grand Prix",
+    "title": "F1-Analysis for the 2024 Canadian Grand Prix",
     "section": "",
     "text": "track layout and speeds\n\n\nAnalysis for conducted using a logistic regression with 30 features for additional information about the modeling process, please send me a message on GitHub issues"
   },
   {
     "objectID": "honors/outcomes.html#track-layout-information",
     "href": "honors/outcomes.html#track-layout-information",
-    "title": "F1-Analysis for the 2024 Emilia Romagna Grand Prix",
+    "title": "F1-Analysis for the 2024 Canadian Grand Prix",
     "section": "",
     "text": "track layout and speeds\n\n\nAnalysis for conducted using a logistic regression with 30 features for additional information about the modeling process, please send me a message on GitHub issues"
   },
   {
     "objectID": "honors/outcomes.html#top3-finishing-position-predictions",
     "href": "honors/outcomes.html#top3-finishing-position-predictions",
-    "title": "F1-Analysis for the 2024 Emilia Romagna Grand Prix",
+    "title": "F1-Analysis for the 2024 Canadian Grand Prix",
     "section": "Top3 Finishing Position Predictions",
-    "text": "Top3 Finishing Position Predictions\nThe table below presents odds of placing in the top 3 positions for each of the drivers in the current standings for F1.\n\n\n\n\n\n\n\n\n\nrank\nprob of top 3 finish\nprob of bottom 17 finish\ndriver name\n\n\n\n\n0\n2\n0.957919\n0.042081\nMax Verstappen\n\n\n1\n4\n0.925119\n0.074881\nSergio Perez\n\n\n2\n3\n0.674576\n0.325424\nCharles Leclerc\n\n\n3\n1\n0.344878\n0.655122\nLando Norris\n\n\n4\n5\n0.294470\n0.705530\nCarlos Sainz\n\n\n5\n8\n0.277252\n0.722748\nGeorge Russell\n\n\n6\n9\n0.162466\n0.837534\nFernando Alonso\n\n\n7\n6\n0.154222\n0.845778\nLewis Hamilton\n\n\n8\n13\n0.141550\n0.858450\nOscar Piastri\n\n\n9\n7\n0.104850\n0.895150\nYuki Tsunoda\n\n\n10\n17\n0.075722\n0.924278\nLance Stroll\n\n\n11\n11\n0.066313\n0.933687\nNico Hulkenberg\n\n\n12\n10\n0.051298\n0.948702\nEsteban Ocon\n\n\n13\n19\n0.046209\n0.953791\nKevin Magnussen\n\n\n14\n12\n0.036600\n0.963400\nPierre Gasly\n\n\n15\n15\n0.028742\n0.971258\nDaniel Ricciardo\n\n\n16\n14\n0.028709\n0.971291\nGuanyu Zhou\n\n\n17\n16\n0.020641\n0.979359\nValtteri Bottas\n\n\n18\n18\n0.016014\n0.983986\nAlexander Albon\n\n\n19\n20\n0.013557\n0.986443\nLogan Sargeant\n\n\n\n\n\n\n\nWe can see here that the top 3 predicted finishers are:\n\nMax Verstappen : probability of top 3 finish - 95.79%\nSergio Perez : probability of top 3 finish - 92.51%\nCharles Leclerc : probability of top 3 finish - 67.46%"
+    "text": "Top3 Finishing Position Predictions\nThe table below presents odds of placing in the top 3 positions for each of the drivers in the current standings for F1.\n\n\n\n\n\n\n\n\n\nrank\nprob of top 3 finish\nprob of bottom 17 finish\ndriver name\n\n\n\n\n0\n6\n0.973316\n0.026684\nMax Verstappen\n\n\n1\n18\n0.885574\n0.114426\nSergio Perez\n\n\n2\n1\n0.691982\n0.308018\nCharles Leclerc\n\n\n3\n4\n0.381850\n0.618150\nLando Norris\n\n\n4\n3\n0.291402\n0.708598\nCarlos Sainz\n\n\n5\n5\n0.230924\n0.769076\nGeorge Russell\n\n\n6\n7\n0.162711\n0.837289\nLewis Hamilton\n\n\n7\n2\n0.162119\n0.837881\nOscar Piastri\n\n\n8\n11\n0.138934\n0.861066\nFernando Alonso\n\n\n9\n8\n0.108294\n0.891706\nYuki Tsunoda\n\n\n10\n14\n0.076741\n0.923259\nLance Stroll\n\n\n11\n19\n0.066313\n0.933687\nNico Hulkenberg\n\n\n12\n9\n0.051651\n0.948349\nAlexander Albon\n\n\n13\n10\n0.039791\n0.960209\nPierre Gasly\n\n\n14\n17\n0.033810\n0.966190\nEsteban Ocon\n\n\n15\n20\n0.033392\n0.966608\nKevin Magnussen\n\n\n16\n12\n0.027708\n0.972292\nDaniel Ricciardo\n\n\n17\n13\n0.018909\n0.981091\nValtteri Bottas\n\n\n18\n15\n0.018811\n0.981189\nLogan Sargeant\n\n\n19\n16\n0.013557\n0.986443\nGuanyu Zhou\n\n\n\n\n\n\n\nWe can see here that the top 3 predicted finishers are:\n\nMax Verstappen : probability of top 3 finish - 97.33%\nSergio Perez : probability of top 3 finish - 88.56%\nCharles Leclerc : probability of top 3 finish - 69.20%"
   }
 ]
