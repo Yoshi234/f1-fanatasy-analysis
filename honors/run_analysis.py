@@ -288,6 +288,7 @@ def load_and_run_model(event_date=None):
 
     # TODO - remove debug v
     print(min_value_row['Location'])
+    print(circuits.loc[circuits['location'] == min_value_row['Location'], 'circuitId'])
     # TODO - remove debug ^
 
     circId = circuits.loc[circuits['location'] == min_value_row['Location'], 'circuitId'].item()
