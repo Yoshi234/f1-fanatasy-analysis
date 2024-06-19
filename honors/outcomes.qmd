@@ -1,5 +1,5 @@
 
-# F1-Analysis for the 2024 Canadian Grand Prix
+# F1-Analysis for the 2024 Spanish Grand Prix
 
 ## Track Layout / Information
 
@@ -28,7 +28,7 @@ results
 
 We can see here that the top 3 predicted finishers are:
     
-+ Max Verstappen : probability of top 3 finish - 97.33%
-+ Sergio Perez : probability of top 3 finish - 88.56%
-+ Charles Leclerc : probability of top 3 finish - 69.20%
++ Max Verstappen : probability of top 3 finish - 96.29%
++ Sergio Perez : probability of top 3 finish - 79.12%
++ Charles Leclerc : probability of top 3 finish - 72.27%
     
