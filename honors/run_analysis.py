@@ -285,6 +285,11 @@ def load_and_run_model(event_date=None):
     
 
     # get track Id of the track for the next event
+
+    # TODO - remove debug v
+    print(min_value_row['Location'])
+    # TODO - remove debug ^
+
     circId = circuits.loc[circuits['location'] == min_value_row['Location'], 'circuitId'].item()
     # use the circId to get the relavent track info
     circInfo = track_dat.loc[track_dat['circuitId'] == circId]
