@@ -45,6 +45,8 @@ However, there are several critical issues with these prior approaches:
    track-oriented prediction
 3. Data window limitations
 
+<!--NICK: add note on your contributions for the proposal (questions)-->
+
 Although each of these are important issues, the last is arguably the most 
 significant. In prior work, data windows 
 
@@ -52,13 +54,19 @@ significant. In prior work, data windows
 
 > description of problem formulation
 
+<!--BOTH, multi-pronged problem-->
+
 ## Dataset Description
 
 > explain the dataset we use for this method
 
+<!--JOSH: work on dataset description-->
+
 ## Methods
 
-> 
+<!--BOTH-->
 
 ## Citations
+
+<!--generated automatically-->
 
