@@ -1,0 +1,64 @@
+---
+title: "F1 Race Outcome Prediction"
+bibliography: ref.bib
+author: 
+    - name: Joshua Lee
+    - name: Nicholas Pfeifer
+format: 
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+---
+
+# F1 Podium Finisher Prediction
+
+F1 is the premier motorsport. It features the fastest drivers in the world, 
+driving the fastest cars ever built, around the most storied and beloved 
+tracks around world. Not only F1 itself a competitive sport, but so is the 
+practice of attempting to predict its associated outcomes. Just like any 
+popular sport, F1 boasts high volume betting markets where highly accurate
+outcome predictions can lead to a major advantage, and better returns. 
+In addition, F1 officially sponsors fantasy team selection, with some leagues
+offering cash prizes and other incentives. 
+
+Needless to say, there is a lot riding on predicting who wins any given race, 
+or aces qualifying on a given weekend. However, if it were so easy, then everyone
+would be making bank. Although F1 outcomes for the 2022 and 2023 season were 
+"boring" for many viewers (Max Verstappen won 19 out of 21 races in 2023), there
+was still a great deal of variability in who (else) would end up on the podium. 
+This year takes this sort of variability to a new extreme. Although McLaren 
+appears to have the strongest overall package over the course of the season, 
+recent races have marked a resurgence for Ferrari who had won earlier in the 
+season as well. Moreover, Mercedes and Red Bull have also experienced winning runs 
+of 3 or more races over the course of the season. 
+
+Despite the high variance of the problem, machine learning models have 
+proved quite effective at modeling the outcome prediction problem. 
+
+<!-- cite the relevant literature and my prior work here -->
+
+However, there are several critical issues with these prior approaches:
+
+1. Failure to correctly model point valuations for drivers and constructors
+2. Prior methods have not successfully incorporated track features for meaningful 
+   track-oriented prediction
+3. Data window limitations
+
+Although each of these are important issues, the last is arguably the most 
+significant. In prior work, data windows 
+
+## Problem Description
+
+> description of problem formulation
+
+## Dataset Description
+
+> explain the dataset we use for this method
+
+## Methods
+
+> 
+
+## Citations
+
