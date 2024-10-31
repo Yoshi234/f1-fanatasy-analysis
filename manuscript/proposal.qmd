@@ -13,7 +13,7 @@ format:
 
 # F1 Podium Finisher Prediction
 
-F1 is the premier motorsport. It features the fastest drivers in the world, 
+F1 is the pinnacle of motorsport. It features the fastest drivers in the world, 
 driving the fastest cars ever built, around the most storied and beloved 
 tracks around world. Not only F1 itself a competitive sport, but so is the 
 practice of attempting to predict its associated outcomes. Just like any 
