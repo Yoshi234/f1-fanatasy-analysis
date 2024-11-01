@@ -48,7 +48,37 @@ However, there are several critical issues with these prior approaches:
 <!--NICK: add note on your contributions for the proposal (questions)-->
 
 Although each of these are important issues, the last is arguably the most 
-significant. In prior work, data windows 
+significant. In prior work, training data has included the entirety of 
+race results spanning across seasons from 2013 to 2021 [@kike2021comparison]
+and from 2022 to 2023 in the case of our previous work [@lee2024f1] on F1 podium prediction.
+Additionally, [@cheteles2024feature] performs evaluations for the entirety of the 
+2018 season. Of course, these methods have achieved reasonable success at their
+respective prediction tasks (multi-class prediction and finishing position regression).
+However, because patterns change so quickly in F1, the underlying driver and 
+constructor performance distribution can change significantly within a relatively 
+short period of time. 
+
+For instance, utilizing data from the beginning of 2022 to the end of 2023, our
+prior research into podium position forecasting placed a significant weight 
+on the Red Bull constructor, and for good reason. From 2022 to 2023, Red Bull 
+won 37 of the 47 races which occurred. As such, training and evaluating on this
+data (80-20 train test split) resulted in reasonably strong performance and an F1
+score of 0.65. Yet, this performance does not carry over into 2024. Because
+the constructor and driver performance rankings have changed so significantly, 
+it would be fair to say that our methods no longer work at all. 
+
+This lack of generalizability is what we aim to address here. We hypothesize
+that limiting the training data window to the set of $n$ races before the race
+to be predicted will improve prediction performance on a per-race basis. 
+Additionally, we expect that scaling raw point values heading into a race will 
+assist the model in understanding the points distribution more effectively. 
+This is important since even if a driver has accumulated 75 points over
+the first three races, their record will appear the same as a driver who has 
+75 points after 24 races. However, these results are entirely incomparable. 
+The diminished utility of this information is reflected in the fact that 
+our prior modeling reduced the coefficient of this feature to nearly 0. [@lee2024f1]
+
+<!--page 16/35 describes the dataset used-->
 
 ## Problem Description
 
@@ -56,14 +86,26 @@ significant. In prior work, data windows
 
 <!--BOTH, multi-pronged problem-->
 
-The problem we would like to tackle is accurately predicting the probability of a
-podium finish for an individual driver. In addition to that, finding the optimal
-training size (for example the previous 8 races). In prior analyses, overfitting
+The problem we would like to tackle is that accurate prediction a podium finish
+probability for each driver. In addition, we aim to determine the optimal
+training size for training a model to predict the results of the 
+next race in sequence. In prior analyses, overfitting
 to the training set has been a common source of error. This is due to how quickly
 the F1 teams can make significant adjustments to the cars. Many models will
 struggle to adapt to these changes. By playing around with various training sizes,
 identifying how long the data is still useful may become more apparent. The approach
 here is of classification and supervised learning.
+
+Additionally, we will explore several modeling methods, in addition to logistic 
+regression. Namely, we will analyze the effectiveness of tree-based methods 
+including decision trees, random forest classifiers, and extreme gradient 
+boosting. One issue uncovered by our prior work was the difficulty of encoding
+feature interactions. For example, for each track specific variable, such as 
+minimum corner speed, one would need to interact the dummy variables for driver, 
+constructor, or both to generate a meaningful feature. Otherwise, the value
+would appear exactly the same for all drivers in a race. Because decision trees
+can implicitly encode some interactions, we may be able to reduce the sparsity 
+of our data construction and reduce the number of interaction encodings required.
 
 ## Dataset Description
 
@@ -80,11 +122,12 @@ oversampling in order to balance the training set. The point of this is to impro
 the balance in the training set since our binary classifier (Podium Finish or not)
 naturally has many more observations in the non-podium class. From there, conducting
 forward selection should be effective in finding the best features for the model.
-That process would only include data from a specified number of prior races (n).
-Then the predictions can be made on the (n + 1)th race. Lastly to optimize n, the
-results can be aggregated over all subsets of n sequential races.
+That process would only include data from a specified number of prior races $n$.
+Then the predictions can be made on the $n+1\text{th}$ race. Lastly to optimize $n$, the
+results can be aggregated over all subsets of $n$ sequential races.
 
-## Citations
+# Citations
 
 <!--generated automatically-->
 
+<!--explore LLMs-->
