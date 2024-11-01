@@ -14,8 +14,8 @@ format:
 # F1 Podium Finisher Prediction
 
 F1 is the pinnacle of motorsport. It features the fastest drivers in the world, 
-driving the fastest cars ever built, around the most storied and beloved 
-tracks around world. Not only F1 itself a competitive sport, but so is the 
+driving the fastest cars ever built, on the most storied and beloved 
+tracks around world. Not only is F1 itself a competitive sport, but so is the 
 practice of attempting to predict its associated outcomes. Just like any 
 popular sport, F1 boasts high volume betting markets where highly accurate
 outcome predictions can lead to a major advantage, and better returns. 
@@ -24,10 +24,10 @@ offering cash prizes and other incentives.
 
 Needless to say, there is a lot riding on predicting who wins any given race, 
 or aces qualifying on a given weekend. However, if it were so easy, then everyone
-would be making bank. Although F1 outcomes for the 2022 and 2023 season were 
+would be making money. Although F1 outcomes for the 2022 and 2023 season were 
 "boring" for many viewers (Max Verstappen won 19 out of 21 races in 2023), there
 was still a great deal of variability in who (else) would end up on the podium. 
-This year takes this sort of variability to a new extreme. Although McLaren 
+This year takes this type of variability to a new extreme. Although McLaren 
 appears to have the strongest overall package over the course of the season, 
 recent races have marked a resurgence for Ferrari who had won earlier in the 
 season as well. Moreover, Mercedes and Red Bull have also experienced winning runs 
@@ -56,6 +56,15 @@ significant. In prior work, data windows
 
 <!--BOTH, multi-pronged problem-->
 
+The problem we would like to tackle is accurately predicting the probability of a
+podium finish for an individual driver. In addition to that, finding the optimal
+training size (for example the previous 8 races). In prior analyses, overfitting
+to the training set has been a common source of error. This is due to how quickly
+the F1 teams can make significant adjustments to the cars. Many models will
+struggle to adapt to these changes. By playing around with various training sizes,
+identifying how long the data is still useful may become more apparent. The approach
+here is of classification and supervised learning.
+
 ## Dataset Description
 
 > explain the dataset we use for this method
@@ -65,6 +74,15 @@ significant. In prior work, data windows
 ## Methods
 
 <!--BOTH-->
+
+Once the data has been gathered, we plan on applying synthetic minority
+oversampling in order to balance the training set. The point of this is to improve
+the balance in the training set since our binary classifier (Podium Finish or not)
+naturally has many more observations in the non-podium class. From there, conducting
+forward selection should be effective in finding the best features for the model.
+That process would only include data from a specified number of prior races (n).
+Then the predictions can be made on the (n + 1)th race. Lastly to optimize n, the
+results can be aggregated over all subsets of n sequential races.
 
 ## Citations
 
