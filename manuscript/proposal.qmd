@@ -82,7 +82,7 @@ our prior modeling reduced the coefficient of this feature to nearly 0. [@lee202
 
 ## Problem Description
 
-> description of problem formulation
+<!-- > description of problem formulation -->
 
 <!--BOTH, multi-pronged problem-->
 
@@ -109,9 +109,36 @@ of our data construction and reduce the number of interaction encodings required
 
 ## Dataset Description
 
-> explain the dataset we use for this method
+<!-- > explain the dataset we use for this method -->
 
 <!--JOSH: work on dataset description-->
+
+The dataset we use consists of result records for each race, where 
+a result record is given for each driver who participated in a given race. So, 
+for example, if a race has 20 participating drivers, then there will be 20 
+records associated with that specific event. Our data is collected from F1 seasons
+spanning from 2012 to 2024 (18 to 24 races per year) and so the total number of 
+data points is roughly 5700 (this will be augmented through our proposed work)
+with 72 features. These features provide relevant information about each driver's
+result record - including the circuit where the record comes from, the driver
+who corresponds to the record, windspeed, precipitation, starting position, 
+and a wide variety of other variables. We also include track specific features 
+such as the mean straight length, the minimum corner speed (how fast do cars
+go at the slowest corner on the track), the number of slow and fast corners
+(slow corners involve speeds less than the first quartile for corner speeds
+across different tracks). We also include data about the prior races from a 
+given season, including the number of previous wins, constructor standing, and 
+driver standing (before the race). These are extremely useful predictors
+as shown by the prior work [@kike2021comparison] and so we include them as well. 
+
+For many of these features, we engineer interactions to explicitly encode
+the relationship between constructor and driver performance, and the characteristics
+of different tracks. These track differences help to make for more interesting
+predictions than would be the case if only point tallies and standings were used 
+for podium prediction.
+
+A list of the features we have previously identified as important can be 
+found [here](https://yoshi234.github.io/f1-fanatasy-analysis/about.html)
 
 ## Methods
 
@@ -125,6 +152,11 @@ forward selection should be effective in finding the best features for the model
 That process would only include data from a specified number of prior races $n$.
 Then the predictions can be made on the $n+1\text{th}$ race. Lastly to optimize $n$, the
 results can be aggregated over all subsets of $n$ sequential races.
+
+Additionally, we will study several methods to model the prediction problem. 
+First, we will investigate the performance of decision tree and random forest 
+classifiers. Second, we will compare the performance of these models to logistic
+regression which was used in our prior work [@lee2024f1].
 
 # Citations
 
