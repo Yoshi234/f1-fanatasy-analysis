@@ -86,15 +86,17 @@ our prior modeling reduced the coefficient of this feature to nearly 0. [@lee202
 
 <!--BOTH, multi-pronged problem-->
 
-The problem we would like to tackle is that accurate prediction a podium finish
-probability for each driver. In addition, we aim to determine the optimal
-training size for training a model to predict the results of the 
+The problem we would like to tackle is the classification of finishing 
+positions for each driver (namely podium or non-podium).
+In addition, we aim to determine the optimal
+training size for fitting a model to predict the results of the 
 next race in sequence. In prior analyses, overfitting
 to the training set has been a common source of error. This is due to how quickly
 the F1 teams can make significant adjustments to the cars. Many models will
 struggle to adapt to these changes. By playing around with various training sizes,
-identifying how long the data is still useful may become more apparent. The approach
-here is of classification and supervised learning.
+we will determine the number of races (leading up to the prediction target race)
+most useful for fitting a model. The problem
+here is that of classification and supervised learning.
 
 Additionally, we will explore several modeling methods, in addition to logistic 
 regression. Namely, we will analyze the effectiveness of tree-based methods 
@@ -145,12 +147,14 @@ found [here](https://yoshi234.github.io/f1-fanatasy-analysis/about.html)
 <!--BOTH-->
 
 Once the data has been gathered, we plan on applying synthetic minority
-oversampling in order to balance the training set. The point of this is to improve
-the balance in the training set since our binary classifier (Podium Finish or not)
+oversampling [@chawla2002smote] in order to balance the training set. 
+The point of this is to improve
+the balance of positive and negative samples in the training set since our binary classifier 
+(Podium Finish or not)
 naturally has many more observations in the non-podium class. From there, conducting
 forward selection should be effective in finding the best features for the model.
 That process would only include data from a specified number of prior races $n$.
-Then the predictions can be made on the $n+1\text{th}$ race. Lastly to optimize $n$, the
+Then, the predictions can be made on the $n+1\text{th}$ race. Lastly to optimize $n$, the
 results can be aggregated over all subsets of $n$ sequential races.
 
 Additionally, we will study several methods to model the prediction problem. 
