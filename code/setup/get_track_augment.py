@@ -9,6 +9,7 @@ Date: 4/3/2024
 import pandas as pd
 import numpy as np
 import fastf1
+from fastf1 import SessionNotAvailableError
 
 def get_track_speeds(event, mode='Q'):
     '''
@@ -32,8 +33,12 @@ def get_track_speeds(event, mode='Q'):
     speed data around a given track (see code)
     '''
     # get the session desired
-    session = fastf1.get_session(event['year'].item(), event['name'].item(), mode)
-    session.load()
+    try:
+        session = fastf1.get_session(event['year'].item(), event['name'].item(), mode)
+        session.load()
+    except SessionNotAvailableError:
+        print("[ERROR]: queried session not available - ret. None")
+        return None 
 
     # get fastest lap car data and circuit data from session
     fastest_lap = session.laps.pick_fastest()
