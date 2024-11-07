@@ -283,7 +283,6 @@ def load_and_run_model(event_date=None):
     drivers = pd.read_csv("../data/drivers.csv")
     constructors = pd.read_csv("../data/constructors.csv")
     
-
     # get track Id of the track for the next event
 
     # TODO - remove debug v
