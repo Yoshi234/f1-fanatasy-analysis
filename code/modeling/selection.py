@@ -30,7 +30,7 @@ def get_data_in_window(k, yr, r_val, track_dat=None, info=False):
         track_dat = pd.read_feather("../../data/clean_model_data.feather")
     if r_val >= k:
         xa = track_dat.loc[(track_dat['year']==yr) & 
-                        (track_dat['round'].isin({i for i in range(r_val+1)}))]
+                        (track_dat['round'].isin({i for i in range(r_val-k+1,r_val+1)}))]
         x=xa
     elif r_val < k:
         xa = track_dat.loc[(track_dat['year']==yr) & 
