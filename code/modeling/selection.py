@@ -1,4 +1,12 @@
 import pandas as pd
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, accuracy_score, precision_recall_fscore_support
+import pickle
 
 def Josh():
     pass
@@ -47,3 +55,100 @@ def get_data_in_window(k, yr, r_val, track_dat=None, info=False):
     
     if info: print(f"[INFO]: xa.shape = {x['round'].nunique()}")
     return x
+
+def get_features(data:pd.DataFrame, features=[], select=False, debug=False):
+    if len(features) == 0: features = ['driverId', 'constructorId']
+    encoder = OneHotEncoder()
+    one_hot = encoder.fit_transform(data[features])
+    # if debug: print("[DEBUG]: one_hot data = {}".format(one_hot))
+    feature_names = encoder.get_feature_names_out()
+    df_features = pd.DataFrame(one_hot.toarray(), columns=feature_names)
+    
+    if debug: print(df_features)
+    
+    if select==True:
+        df_study = pd.concat([data[['positionOrder','quali_position']], df_features], axis=1)
+    else:
+        df_study = pd.concat([data, df_features], axis=1)
+
+    return df_study
+
+def get_encoded_data(dat:pd.DataFrame):
+    # we need lists of these variables so we can create interactions between the encoded
+    # categoricals and the other variables of interest
+    driver_vars = ['driverId_{}'.format(id) for id in dat['driverId'].unique()] 
+    construct_vars = ['constructorId_{}'.format(id) for id in dat['constructorId'].unique()]
+    cycle_vars = ['cycle_{}'.format(id) for id in dat['cycle'].unique()]
+
+    # test track characteristics - corner_spd_mean, num_fast_corners, num_slow_corners, strt_len_max
+    # test all constructors
+    # test regulation types - engine_reg, aero_reg, years_since_major_cycle
+    #       engine_reg * years_since_major_cycle + engine_reg
+    #       aero_reg * years_since_major_cycle + aero_reg
+    encoded_dat = get_features(dat, ['constructorId','driverId', 'cycle'], select=False)
+    return driver_vars, construct_vars, cycle_vars, encoded_dat
+
+def add_interaction(data, vars=[], drivers=[], constructors=[]):
+    '''
+    Args:
+    - vars --------- list of the additional variables to include in 
+                     each interaction term. For example, if vars held
+                     track_min_speed and engine_reg, then we would 
+                     generate interaction terms
+                     driver * constructor * engine_reg * track_min_speed
+                     This is always assumed to have at least one 
+                     value held in it
+    - drivers ------ list of drivers to create an interaction term for
+    - constructors - list of constructors to create an interaction term for
+
+    We use copies of the numpy arrays every time because not doing so 
+    will overwrite the original data which would mess everything up
+    '''
+    data2 = data.copy()
+    drivers = drivers.copy()
+    constructors = constructors.copy()
+
+    if len(drivers) == 0: drivers.append("any_driver")
+    if len(constructors) == 0: constructors.append("any_constructor")
+    for i in range(len(drivers)):
+        # skip max verstappen and red bull
+        # if drivers[i] == "driverId_830": continue
+        for j in range(i,len(constructors)):
+            # skip red bull
+            # if constructors[j] == "constructorId_9": continue
+            # set the initial value for the array
+            interact = data[vars[0]].copy()
+
+            v_string = ""
+            # handle using driver as an interaction
+            if drivers[i] != "any_driver":
+                interact *= data[drivers[i]].copy()
+                drive_val = drivers[i]
+                v_string += f'{drive_val}-'
+
+            # handle using constructor as an interaction 
+            if constructors[j] != "any_constructor":
+                interact *= data[constructors[j]].copy()
+                construct_val = constructors[j]
+                v_string += f'{construct_val}-'
+            
+            v_string += vars[0]
+            for k in range(1, len(vars)):
+                # print('loop executes?')
+                interact *= data[vars[k]].copy()
+                v_string += "-{}".format(vars[k])
+            
+            df = pd.DataFrame({
+                v_string: interact
+            })
+            data2 = pd.concat([data2, df], axis=1)
+            # # add interaction to the dataframe
+            # data[v_string] = interact
+            # print(v_string)
+    return data2
+
+if __name__ == "__main__":
+    print(add_interaction)
+    print(get_features)
+    print(get_encoded_data)
+    print(get_data_in_window)
