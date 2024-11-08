@@ -9,7 +9,7 @@ Date: 4/3/2024
 import pandas as pd
 import numpy as np
 import fastf1
-from fastf1 import SessionNotAvailableError
+# from fastf1 import SessionNotAvailableError
 
 def get_track_speeds(event, mode='Q'):
     '''

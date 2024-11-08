@@ -203,7 +203,6 @@ def add_prev_round_dat(
 
     return races
 
-
 def main(folder:str = "../../data"):
     '''
     read in all data and format properly for analysis
