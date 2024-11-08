@@ -30,6 +30,7 @@
    Namely, the number of duplicates would be $w = \lfloor mx \rceil + 1$
    Suppose we had $k=5$ samples and $m=0.5$ for our weight parameter, then we
    should have the following duplications:
+5. Format 2024 race data into the same form as the `clean_model_data.feather` file
 
 <center>
 
