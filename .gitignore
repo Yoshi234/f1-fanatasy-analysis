@@ -1,4 +1,5 @@
 /.quarto/
+**/__pycache__
 /data/
 /_site/
 /code/setup/private.txt

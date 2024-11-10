@@ -36,7 +36,7 @@ def get_track_speeds(event, mode='Q'):
     try:
         session = fastf1.get_session(event['year'].item(), event['name'].item(), mode)
         session.load()
-    except SessionNotAvailableError:
+    except:
         print("[ERROR]: queried session not available - ret. None")
         return None 
 
