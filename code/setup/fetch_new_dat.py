@@ -160,6 +160,7 @@ def fetch_new(current_date=None):
         prev_round = record['RoundNumber'] - 1
         
         # set event name
+        ### end universal variables ...................
 
         # set base dataframe
         s1 = fastf1.get_session(curr_yr, record['RoundNumber'], 'R')
@@ -173,14 +174,6 @@ def fetch_new(current_date=None):
         
         
         # reset column orderings
-        
-
-
-
-
-
-        
-
 
 if __name__ == "__main__":
     fetch_new()
