@@ -37,6 +37,7 @@ def get_track_speeds(event, mode='Q'):
         session = fastf1.get_session(event['year'].item(), event['name'].item(), mode)
         session.load()
     except:
+        print("[DEBUG]: event = {}".format(event))
         print("[ERROR]: queried session not available - ret. None")
         return None 
 
@@ -74,8 +75,8 @@ def get_track_speeds(event, mode='Q'):
     track_dat = pd.DataFrame(
         {
          "ref_year": [event['year'].item()],
-         "ref_name": [event['name'].item()],
-         "circuitId": [event['circuitId'].item()],
+        #  "ref_name": [event['name'].item()],
+        #  "circuitId": [event['circuitId'].item()], # DEBUG TEST
          "strt_len_mean": [straight_lens.mean()],
          "strt_len_q1": [np.quantile(straight_lens, q=0.25)],
          "strt_len_median": [np.quantile(straight_lens, q=0.50)],

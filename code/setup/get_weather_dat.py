@@ -21,6 +21,7 @@ import urllib.error
 import json
 import requests
 import pandas as pd
+import numpy as np
 
 def format_weather_dat(w_dat):
     '''
@@ -60,7 +61,7 @@ def get_locations_dat(folder:str = "../data"):
         print("Error: erroneous rows created. please check merging operation")
         return merged_dat
 
-def get_weather_dat(loc_dat:pd.DataFrame, api_key):
+def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
     '''
     takes as input the locations data frame (circuits merged with races) and 
     outputs the weather information associated with the following attributes
@@ -72,9 +73,15 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key):
     See https://gitlab.com/kikefranssen/thesis_kf_f1/-/blob/main/1_load_weather.py?ref_type=heads
     for the code which is referenced here
     '''
+    search_keys = ['tempmax','tempmin','temp','dew','humidity','precip','precipcover','preciptype','windspeed','winddir']
     APIkey = api_key
     BaseURL = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
     EndUrl = f"?unitGroup=metric&elements=datetime%2Ctempmax%2Ctempmin%2Ctemp%2Cdew%2Chumidity%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Cwindspeed%2Cwinddir%2Cvisibility&include=days&key={APIkey}&contentType=json"
+    
+    if api_key is None:
+        print("[ERROR]: Missing data for event {}".format(loc_dat['event_name'].unique()[0]))
+        loc_dat[search_keys] = np.nan
+        return loc_dat
     
     # iterate through loc_dat dataframe and obtain weather data
     for idx, row in loc_dat.iterrows():
@@ -83,12 +90,21 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key):
         date = str(row['date'])
         query = BaseURL + lat + "%2C" + lng + "/" + date + "/" + date + EndUrl
         response = requests.get(query)
-        w_dat = json.loads(response.text)
+        if debug: 
+            print(f"[DEBUG]: {query}")
+            print(f"[DEBUG]: {response}")
+        try:
+            w_dat = json.loads(response.text)
+        except:
+            print("[ERROR]: Missing data for event {}".format(loc_dat['event_name'].unique()[0]))
+            loc_dat[search_keys] = np.nan
+            return loc_dat
         w_dat = w_dat['days'] 
         w_dict = {key:value for entry in w_dat for (key,value) in entry.items()}
 
         for key in w_dict:
-            loc_dat.loc[idx,key] = w_dict[key]
+            if key in search_keys: 
+                loc_dat.loc[idx,key] = w_dict[key]
     
     # return location dataframe with added weather information
     return loc_dat
