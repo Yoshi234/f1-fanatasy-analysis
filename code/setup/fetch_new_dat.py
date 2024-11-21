@@ -209,6 +209,9 @@ def fetch_new(current_date=None, key=None, test=False):
     # update/subset schedule
     schedule = schedule.loc[(schedule['RoundNumber']>p_r) & 
                             (schedule['EventDate']<current_date)]
+    
+    if schedule.shape[0] == 0: 
+        return og_dat
 
     res_id = og_dat['resultId'].max() + 1
     r1_id = None
@@ -269,7 +272,7 @@ def fetch_new(current_date=None, key=None, test=False):
         for driver in base['DriverId'].unique():
             driver_x = drivers.loc[drivers['driverRef']==driver]
             if len(driver_x['driverRef']) > 0:
-                base.loc[base['DriverId']==driver, 'driverId']=driver_x['driverId'].item()
+                base.loc[base['DriverId']==driver, 'driverId']=int(driver_x['driverId'].item())
                 base.loc[base['DriverId']==driver, 'resultId']=res_id
                 res_id += 1
             else:
@@ -277,7 +280,7 @@ def fetch_new(current_date=None, key=None, test=False):
         for construct in base['TeamId'].unique():
             construct_x = constructors.loc[constructors['constructorRef']==construct]
             if len(construct_x['constructorRef']) > 0:
-                base.loc[base['TeamId']==construct, 'constructorId']=construct_x['constructorId'].item()
+                base.loc[base['TeamId']==construct, 'constructorId']=int(construct_x['constructorId'].item())
             else:
                 print("[INFO]: add {} info to the constructors.csv file".format(construct))
 
@@ -326,4 +329,4 @@ def fetch_new(current_date=None, key=None, test=False):
     return result
 
 if __name__ == "__main__":
-    print(get_standings_data(20, 2023).keys())
+    fetch_new('2024-11-18')
