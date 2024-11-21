@@ -169,7 +169,7 @@ def set_prev_round_data(df:pd.DataFrame, yr=2024, rnd=None):
     )
     return result
 
-def fetch_new(current_date=None, key=None, test=False):
+def fetch_new(current_date=None, key=None, test=False, no_key=True):
     '''
     fetches most recent data for records not contained clean_model_data.feather
     generates matching dataframe and updates existing clean_model_data.feather
@@ -289,9 +289,12 @@ def fetch_new(current_date=None, key=None, test=False):
         base['lat'] = c1['lat']
         base['date'] = s1.date.strftime("%Y-%m-%d")
     
-        api_key = ''
-        with open(key, "r") as f:
-            api_key = f.readlines()[0].strip('\n')
+        if no_key==False:
+            api_key = ''
+            with open(key, "r") as f:
+                api_key = f.readlines()[0].strip('\n')
+        else:
+            api_key=None
 
         # update and join weather data
         base = get_weather_dat(
