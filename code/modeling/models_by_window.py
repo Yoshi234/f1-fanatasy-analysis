@@ -6,6 +6,12 @@ from ISLP import confusion_table
 import numpy as np
 from sklearn.metrics import f1_score
 from tqdm import tqdm
+from param_train import (
+    logistic_fit, 
+    xgb_fit
+)
+import warnings
+warnings.filterwarnings('ignore')
 
 def models_by_window_2(
     start_yr, 
@@ -13,16 +19,24 @@ def models_by_window_2(
     n, 
     data='../../data/clean_model_data.feather', 
     max_year=2024, 
-    debug=False
+    debug=False,
+    model_type='xgb',
+    fit_func=None,
+    cat_features=None,
+    feature_vals=None
 ):
     """
     Summarizes accuracy and f1 score for each window across all races in span
         
     Args:
-    - start_yr - the first year of the span on which to test
-    - start_r -- the first round to be tested on in start_yr
-    - n -------- the biggest window size to test; windows from size 1 to n will be tested
-    - data ----- data file to choose
+    - start_yr ------ the first year of the span on which to test
+    - start_r ------- the first round to be tested on in start_yr
+    - n ------------- the biggest window size to test; windows from size 1 to n will be tested
+    - data ---------- data file to choose
+    - fit_func ------ a function to pass which automatically fits from the features. Default
+      fit funcs are defined in param_train.py
+    - cat_features -- list of categorical features to set as category types (optional)
+    - features ------ total list of features to use (optional)
 
     Under the hood:
     - The function consists of 3 nested for loops (n, year, round)
@@ -63,38 +77,70 @@ def models_by_window_2(
                 
                 # get data window of current size and current race
                 train_window = get_data_in_window(k = i+1, yr = year, r_val = round, track_dat=all_data)
+                # train_window['alt'] = train_window['alt'].astype(float)
                 train_window['Podium Finish'] = ['Yes' if position <= 3 else 'No' for position in train_window['positionOrder']]
                 train_window = train_window.reset_index().drop(['index'],axis=1)
                 
-                drivers_train, constructors_train, _, df_train = get_encoded_data(train_window)
+                # handle the encoding directly now!!
+                if model_type == 'xgb':
+                    drivers_train, constructors_train, _, train_window = get_encoded_data(train_window)
+                
+                # if not xgb or lightgbm - handle directly
+                if model_type!='xgb' and model_type!='lightgbm':
+                    drivers_train, constructors_train, _, df_train = get_encoded_data(train_window)
 
-                train_window = add_interaction(df_train, vars=['corner_spd_min'], drivers=drivers_train)
+                # remove interactions for all tree models except Logistic
+                if model_type == 'logistic':
+                    train_window = add_interaction(df_train, vars=['corner_spd_min'], drivers=drivers_train)
 
                 test_window = train_window[(train_window['round'] == round) & (train_window['year'] == year)]
-
                 train_window = train_window.drop(train_window[(train_window['round'] == round) & (train_window['year'] == year)].index)
+                
+                if debug: print("[DEBUG]: train_window.keys = {}".format(train_window.keys()))
 
                 #print(train_window['round'].unique()) # another test
-
                 # select features using the data window
                 if debug: 
                     print("[DEBUG]: train_window.keys() = \n{}".format(train_window.keys()))
                 
-                train_features = train_window[['Podium Finish', 'constructorId_9']]
+                # set training features
+                if feature_vals is None:
+                    train_features = train_window[['Podium Finish', 'constructorId_9']]
+                else:
+                    if 'Podium Finish' not in feature_vals:
+                        feature_vals.append('Podium Finish')
+                    train_features = train_window[feature_vals + drivers_train + constructors_train]
+                # set categorical feature dtypes for xgboosting
+                # if cat_features is not None:
+                #     train_features[cat_features] = train_features[cat_features].astype('category')
 
+                train_features = train_features.dropna() # drop everything with na values
+                # train_features['alt'] = train_features['alt'].astype(float)
                 features = train_features.columns.drop(['Podium Finish'])
 
-                design = MS(features)
-                X = design.fit_transform(train_features)
-                y = train_features['Podium Finish'] == 'Yes'
-                lr = sm.GLM(y,
-                            X,
-                            family = sm.families.Binomial())
-                lr_results = lr.fit()
+                if debug: 
+                    print("[DEBUG]: y output = {}".format(
+                        train_features['Podium Finish'] == 'Yes')
+                    )
+                    print("[DEBUG]: features.dtypes = {}".format(train_features.dtypes))
+                
+                # design = MS(features)
+                # X = design.fit_transform(train_features)
+                # y = train_features['Podium Finish'] == 'Yes'
+                # lr = sm.GLM(y,
+                #             X,
+                #             family = sm.families.Binomial())
+                # lr_results = lr.fit()
 
-                # get predicted probabilities for current race
-                test = MS(features).fit_transform(test_window)
-                probabilities = lr_results.predict(test)
+                # # get predicted probabilities for current race
+                # test = MS(features).fit_transform(test_window)
+                # probabilities = lr_results.predict(test)
+
+                # skip empty iterations
+                if train_features.shape[0] == 0: continue
+
+                probabilities = fit_func(train_features, test_window, info=False, smote=True)
+
                 
                 # classify predictions
                 n_outs = test_window.shape[0]
@@ -113,6 +159,9 @@ def models_by_window_2(
 
                 # Add to singlular df
                 single_n_results_df = single_n_results_df._append({'Accuracy': test_accuracy, 'F1 Score': test_f1}, ignore_index=True) 
+
+                # if debug:
+                #     return None
         
         # take average accuracy and f1 score for window size and add to a dataframe
         results_df = results_df._append({'n': i, 
@@ -125,3 +174,40 @@ def models_by_window_2(
     
     # return results dataframe
     return results_df
+
+if __name__ == "__main__":
+    cat_features = ['circuitId', 'driverId', 'constructorId']
+    features = [
+        # 'circuitId', 
+        'driverId', 'constructorId', #'alt', 
+        # 'tempmax', 'tempmin', 'temp', 'dew', 
+        # 'humidity', 'precip', 'precipcover', 
+        # 'preciptype', 'windspeed', 'winddir', 
+        'prev_driver_points', 'prev_construct_points', 
+        'prev_construct_position', 'prev_construct_wins', 
+        'strt_len_mean', 'strt_len_q1', 'strt_len_median', 
+        'strt_len_q3', 'strt_len_max', 'strt_len_min', 
+        'str_len_std', 'avg_track_spd', 'max_track_spd', 
+        'min_track_spd', 'std_track_spd', 'corner_spd_mean', 
+        'corner_spd_q1', 'corner_spd_median', 'corner_spd_q3', 
+        'corner_spd_max', 'corner_spd_min', 'num_slow_corners', 
+        'num_fast_corners', 'num_corners', 'circuit_len', 'year'
+    ]
+    # x = pd.read_csv("../../data/clean_model_data2.csv")
+    # print(x['alt'])
+    # print(x['preciptype'].isna().sum())
+    # print(x.loc[x['year']==2024].shape, 'n results from 2024')
+    # print(x.shape, 'before drop na')
+    # x = x[features].dropna()
+    # print(x.loc[x['year']==2024].shape, 'n results from 2024')
+    # print(x.shape, 'after drop na')
+    # print((x == '\\N').sum())
+    res = models_by_window_2(2023, 1, 20, 
+                       data='../../data/clean_model_data2.csv',
+                       max_year=2024, 
+                       model_type='xgb', 
+                       debug=False,
+                       fit_func=xgb_fit,
+                       cat_features=cat_features,
+                       feature_vals=features)
+    print(res)
