@@ -6,10 +6,18 @@ from ISLP import confusion_table
 import numpy as np
 from sklearn.metrics import f1_score
 from tqdm import tqdm
-from param_train import (
-    logistic_fit, 
-    xgb_fit
-)
+try:
+    from param_train import (
+        logistic_fit, 
+        xgb_fit
+    )
+    from mod_point_distrib import std_pt_distrib
+except: 
+    from .param_train import (
+        logistic_fit,
+        xgb_fit
+    )
+    from .mod_point_distrib import std_pt_distrib
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -23,7 +31,8 @@ def models_by_window_2(
     model_type='xgb',
     fit_func=None,
     cat_features=None,
-    feature_vals=None
+    feature_vals=None,
+    dbg_count=None
 ):
     """
     Summarizes accuracy and f1 score for each window across all races in span
@@ -53,6 +62,12 @@ def models_by_window_2(
     elif data.split(".")[-1] == 'csv':
         all_data = pd.read_csv(data)
 
+    if debug: print("[DEBUG]: before standardizing point distribution --- \n{}".format(all_data))
+    all_data, std_pt_features = std_pt_distrib(all_data) # return feature names 
+    if debug: 
+        print("[DEBUG]: after standardizing point distribution ---- \n{}".format(all_data))
+        if dbg_count == 1: exit()
+    
     results_df = pd.DataFrame(columns=['n', 'Accuracy', 'F1 Score'])
 
     # For each model of window size 1 to n
@@ -105,11 +120,17 @@ def models_by_window_2(
                 
                 # set training features
                 if feature_vals is None:
-                    train_features = train_window[['Podium Finish', 'constructorId_9']]
+                    train_features = train_window[['Podium Finish', 
+                                                   'prev_driver_points_prop',
+                                                   'constructorId_1',
+                                                   'constructorId_9',
+                                                   'max_track_spd',
+                                                   'prev_construct_wins',
+                                                   'driverId_1']]
                 else:
                     if 'Podium Finish' not in feature_vals:
                         feature_vals.append('Podium Finish')
-                    train_features = train_window[feature_vals + drivers_train + constructors_train]
+                    train_features = train_window[feature_vals + drivers_train + constructors_train + std_pt_features]
                 # set categorical feature dtypes for xgboosting
                 # if cat_features is not None:
                 #     train_features[cat_features] = train_features[cat_features].astype('category')
@@ -138,9 +159,9 @@ def models_by_window_2(
 
                 # skip empty iterations
                 if train_features.shape[0] == 0: continue
+                if test_window.shape[0] == 0: continue
 
-                probabilities = fit_func(train_features, test_window, info=False, smote=True)
-
+                probabilities = fit_func(train_features, test_window, info=False, smote=True, f_select=True)
                 
                 # classify predictions
                 n_outs = test_window.shape[0]
@@ -202,12 +223,13 @@ if __name__ == "__main__":
     # print(x.loc[x['year']==2024].shape, 'n results from 2024')
     # print(x.shape, 'after drop na')
     # print((x == '\\N').sum())
-    res = models_by_window_2(2023, 1, 20, 
+    res = models_by_window_2(2024, 1, 2, 
                        data='../../data/clean_model_data2.csv',
-                       max_year=2024, 
+                       max_year=2025, 
                        model_type='xgb', 
                        debug=False,
                        fit_func=xgb_fit,
                        cat_features=cat_features,
-                       feature_vals=features)
+                       feature_vals=None,
+                       dbg_count=None)
     print(res)
