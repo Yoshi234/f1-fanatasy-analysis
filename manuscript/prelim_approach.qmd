@@ -1,9 +1,62 @@
 There were many approaches that we considered in attempting to make the most accurate predictions.
+
 The first step of the project was creating a function that could use an approach
 and return the results for each window size up to a specified value of n. This
 function was a big success and laid the foundation for comparing different
 variable selection and modeling processes. The way the function works is that
 it creates a model for every race and every window size (n). It then makes predictions
-for every race and summarizes the performance metrics for each value of n at the end.
+for every race using its respective model and summarizes the performance metrics for each value of n at the end.
+The predictions are classified by assigning the drivers with the 3 highest probabilities
+derived from the model to the podium class and the rest to the non-podium class. 
 The metric that we thought was most indicative of performance was the average F1 score.
-F1 score is calculated by
+F1 score is calculated by $\frac{2*P*R}{P+R}$ where P is the precision (the accuracy of
+podium predictions) and R is recall (the true positive rate). An F1 score greater than
+0.5 indicates that the model is better than random guessing. F1 score was better than
+using accuracy since accuracy would naturally be pretty high for every model with the worse case
+of getting 14/17 non-podium predictions correct. 
+
+Once we had the ability to see how F1 score varied for each value of n we immediately saw a trend
+starting to form. As n increased, F1 score would generally increase up to a certain point. After
+reaching that point, larger values of n generally had same or lower F1 scores. These were encouraging
+results as it appeared there was a "sweet spot" value of n.
+
+The next step was determining what type of model and feature selection was the best.
+
+The first type of model that we fit was a logistic regression model with manually selected features.
+This approach did not yield high F1 scores. One issue that we ran into was encoding interaction terms.
+
+We also experimented with decision trees. The decision trees showed some promising results and could
+generate high F1 scores for individual races. Unfortunately, the decision trees did not quite have the
+functionality we were looking for with regards to dealing with interactions. The trees were also prone to
+overfitting.
+
+At this point we wanted to try out automatic feature selection. This was done using xg_boost. The thought here
+was also that the models could benefit from interact features implemented by xg_boost. This approach however also
+did not perform very well. It seemed that xg_boost was not selecting the best combination of features.
+
+One aspect that allowed us to observe higher F1 scores was implementing sinthetic minority over-sampling or SMOTE.
+To this point our classification had been imbalanced. Only 3/20 or 15% of results were positive (podium) classifications.
+This means that our models are biased toward negative (non-podium) classifications. By using SMOTE, the minority (positive)
+classifications are randomly resampled from the minority distribution until the number of positive and negative classifications
+are more balanced. This balanced classification technique improved performance by 15-20% in F1 score. 
+
+This led us to our final approach which was using an xg boosting regressor and conducting manual forward selection.
+The manual selection process consisted of picking features one at a time, checking if they improved...
+
+
+<!--
+Logistic regression
+Decision trees - overfitting
+
+SMOTE - imbalance classification, only 15% of results were actual positive classification, biased toward negative classifications, improved performance by 15-20% in F1 score
+xg_boost - automatically implements interaction features
+
+automatic feature selection did not work well (from xg_boost)
+
+manual forward selection - picking a few features, adding random features until we could no longer improve performance
+
+Final:
+manual selection
+xg boosting regressor selecting top 3 probabilities 
+
+-->
