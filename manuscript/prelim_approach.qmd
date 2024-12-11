@@ -2,12 +2,12 @@
 
 There were many approaches that we considered in attempting to make the most accurate predictions.
 
-The first step of the project was creating a function that could use an approach
-and return the results for each window size up to a specified value of n. This
-function was a big success and laid the foundation for comparing different
-variable selection and modeling processes. The way the function works is that
-it creates a model for every race and every window size (n). It then makes predictions
-for every race using its respective model and summarizes the performance metrics for each value of n at the end.
+The first step of the project was creating a function that could accept 
+a specified method, 
+and return the results of training on data windos of size up to a specified value of $n$. This
+function was successful and laid the foundation for comparing different
+variable selection and modeling processes. The function works by
+iterating over every combination of round, year, and $n$ selected for the fitting procedure, and then trains an XGBoosting model over the $n$ previous races to predict podium finish outcomes on the next race in sequence. After predictions are made for each race, the function summarizes performance metrics for each value of $n$. 
 The predictions are classified by assigning the drivers with the 3 highest probabilities
 derived from the model to the podium class and the rest to the non-podium class. 
 The metric that we thought was most indicative of performance was the average F1 score.
@@ -19,8 +19,8 @@ of getting 14/17 non-podium predictions correct.
 
 Once we had the ability to see how F1 score varied for each value of n we immediately saw a trend
 starting to form. As n increased, F1 score would generally increase up to a certain point. After
-reaching that point, larger values of n generally had same or lower F1 scores. These were encouraging
-results as it appeared there was a "sweet spot" value of n.
+reaching that point, larger values of $n$ typically yielded the same or lower F1 scores. These were encouraging
+results as it appeared there was a "sweet spot" value of $n$.
 
 The next step was determining what type of model and feature selection was the best.
 
@@ -28,23 +28,26 @@ The first type of model that we fit was a logistic regression model with manuall
 This approach did not yield high F1 scores. One issue that we ran into was encoding interaction terms.
 
 We also experimented with decision trees. The decision trees showed some promising results and could
-generate high F1 scores for individual races. Unfortunately, the decision trees did not quite have the
-functionality we were looking for with regards to dealing with interactions. The trees were also prone to
-overfitting.
+generate high F1 scores for individual races. Unfortunately, the decision trees were prone to overfitting which limited their effectiveness.
 
-At this point we wanted to try out automatic feature selection. This was done using xg_boost. The thought here
-was also that the models could benefit from interact features implemented by xg_boost. This approach however also
-did not perform very well. It seemed that xg_boost was not selecting the best combination of features.
+At this point we wanted to try out automatic feature selection. This was done using XGBoost. The thought here
+was also that the models could benefit from interaction features implemented by XGBoost. This approach however also
+did not perform very well. After fitting XGBoost over a series of 
+data window sizes, we found that a model which included all of the 
+features typically performed worse relative a model with far 
+fewer features. This indicated that features were not adequately being
+selected, since their effect could have been ignored in a full model
+if it were. 
 
-One aspect that allowed us to observe higher F1 scores was implementing sinthetic minority over-sampling or SMOTE.
-To this point our classification had been imbalanced. Only 3/20 or 15% of results were positive (podium) classifications.
-This means that our models are biased toward negative (non-podium) classifications. By using SMOTE, the minority (positive)
+Additionally, we observed higher F1 scores after implementing synthetic minority over-sampling or SMOTE.
+Up to this point, our classification problem had been imbalanced. Only 3/20 or 15% of results were positive (podium) classifications.
+This means that our models were biased toward negative (non-podium) classifications. By using SMOTE, the minority (positive)
 classifications are randomly resampled from the minority distribution until the number of positive and negative classifications
 are more balanced. This balanced classification technique improved performance by 15-20% in F1 score. 
 
 # Selected Approach and Methodology
 
-This led us to our final approach which was using an xg boosting regressor for predicting 
+This process ultimately led us to our final approach which was using an xg boosting regressor for predicting 
 the classification value (0 or 1 - the result was the mean value of 0 and 1 for each region
 selected by the regressor - which amounts to the probability of a positive classification). 
 In hindsight, we could have also used an XGB classifier with predict probabilities to 

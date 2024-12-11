@@ -20,5 +20,3 @@ have enough information to make accurate predictions and put too much weight in 
 On the other hand, a model with a large window size (15 or 20 races) could be basing its predictions off of
 noisy data that is no longer representative of the current competition. We wanted to know what window size
 is the "sweet spot" for making the most accurate predictions.
-
-# Other Questions?
