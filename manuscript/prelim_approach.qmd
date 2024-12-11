@@ -1,0 +1,9 @@
+There were many approaches that we considered in attempting to make the most accurate predictions.
+The first step of the project was creating a function that could use an approach
+and return the results for each window size up to a specified value of n. This
+function was a big success and laid the foundation for comparing different
+variable selection and modeling processes. The way the function works is that
+it creates a model for every race and every window size (n). It then makes predictions
+for every race and summarizes the performance metrics for each value of n at the end.
+The metric that we thought was most indicative of performance was the average F1 score.
+F1 score is calculated by

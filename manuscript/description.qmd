@@ -1,0 +1,24 @@
+The Formula 1 dataset we used has 72 features where each observation represents the results
+of 1 driver in a specific race. For example, if a race has 20 participating drivers, 
+then there will be 20 records associated with that specific race. Many of the features
+are related to characteristics of a track such as the average speed, the maximum speed,
+the longest staight length, the number of corners, etc. Other features tell information
+about the track conditions such as temperature, humidity, precipitation, and windspeed.
+Lastly, some of the most important features have to do with how a driver or team has
+performed in previous races. These features convey performance through how many points
+or wins a driver or team has accumulated in a span of prior races.
+
+The main question we wanted to tackle was determining what training size is best for predicting
+podium (top 3) finishes for each driver. To accomplish this we had to fit models for various
+training sizes (also called windows) of prior races and then compare how well they performed in classifying
+an observation as a podium finish or not in the next race. This question was especially interesting because in
+previous analyses, overfitting to the training data was a common source of error. F1 teams are 
+capable of significantly upgrading their cars from race to race which can be difficult for models
+to adapt to. The aim of this question was to pinpoint the window size for which the training data
+is most most relevant. A model with a window size of just a handful of races (say 2 or 3) may not 
+have enough information to make accurate predictions and put too much weight in a small sample of results.
+On the other hand, a model with a large window size (15 or 20 races) could be basing its predictions off of
+noisy data that is no longer representative of the current competition. We wanted to know what window size
+is the "sweet spot" for making the most accurate predictions.
+
+# Other Questions?
