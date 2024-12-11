@@ -1,5 +1,4 @@
 import pandas as pd
-from selection import get_data_in_window, get_features, get_encoded_data, add_interaction
 from ISLP.models import (ModelSpec as MS, summarize)
 import statsmodels.api as sm
 from ISLP import confusion_table
@@ -11,11 +10,25 @@ try:
         logistic_fit, 
         xgb_fit
     )
+    from selection import (
+        get_data_in_window, 
+        get_features, 
+        get_encoded_data, 
+        add_interaction,
+        add_podiums
+    )
     from mod_point_distrib import std_pt_distrib
-except: 
+except: # import as module
     from .param_train import (
         logistic_fit,
         xgb_fit
+    )
+    from .selection import (
+        get_data_in_window, 
+        get_features, 
+        get_encoded_data, 
+        add_interaction,
+        add_podiums
     )
     from .mod_point_distrib import std_pt_distrib
 import warnings
@@ -57,6 +70,12 @@ def models_by_window_2(
     the average accuracy and f1_score for that value of n is added to a different dataframe
     - After all iterations of n, the dataframe containing the averages is returned
     """
+    if n < 2: 
+        print("[ERROR]: n races training window must be greater than 2")
+        return 
+    
+    get_podiums = True # set true for using the add_podiums func to augment data
+
     if data.split(".")[-1] == "feather":
         all_data = pd.read_feather(data)
     elif data.split(".")[-1] == 'csv':
@@ -71,7 +90,7 @@ def models_by_window_2(
     results_df = pd.DataFrame(columns=['n', 'Accuracy', 'F1 Score'])
 
     # For each model of window size 1 to n
-    for i in tqdm(range(1,n+1), ncols=100, total=n, 
+    for i in tqdm(range(2,n+1), ncols=100, total=n-1, 
                   desc='processing trials', dynamic_ncols=True, leave=True):
         single_n_results_df = pd.DataFrame(columns=['Accuracy', 'F1 Score'])
 
@@ -91,8 +110,12 @@ def models_by_window_2(
                 # print(i, year, round) # just a test
                 
                 # get data window of current size and current race
-                train_window = get_data_in_window(k = i+1, yr = year, r_val = round, track_dat=all_data)
+                # r_val should be r_val - 1
+                train_window = get_data_in_window(k=i+1, yr=year, r_val=round, track_dat=all_data)
+                # train_window, podium_keys = add_podiums(n=i+1, data=all_data, year = year, round = round)
+                # if debug: print("[DEBUG]: podium_keys = {}".format(podium_keys))
                 # train_window['alt'] = train_window['alt'].astype(float)
+                # test_window['Podium Finish'] = ['Yes' if position <= 3 else 'No' for position in test_window['positionOrder']]
                 train_window['Podium Finish'] = ['Yes' if position <= 3 else 'No' for position in train_window['positionOrder']]
                 train_window = train_window.reset_index().drop(['index'],axis=1)
                 
@@ -120,13 +143,19 @@ def models_by_window_2(
                 
                 # set training features
                 if feature_vals is None:
-                    train_features = train_window[['Podium Finish', 
-                                                   'prev_driver_points_prop',
-                                                   'constructorId_1',
-                                                   'constructorId_9',
-                                                   'max_track_spd',
-                                                   'prev_construct_wins',
-                                                   'driverId_1']]
+                    feature_list = [
+                                    'Podium Finish', 
+                                    'prev_driver_points',
+                                    # 'constructorId_1',
+                                    # 'constructorId_9',
+                                    # 'max_track_spd',
+                                    # 'prev_construct_wins',
+                                    # 'driverId_844'
+                                    ]
+                    # feature_list += podium_keys[1:4]
+                    if debug: print("[DEBUG]: podium keys = {}".format(podium_keys))
+                     # add top 3 podiums
+                    train_features = train_window[feature_list]
                 else:
                     if 'Podium Finish' not in feature_vals:
                         feature_vals.append('Podium Finish')
@@ -161,7 +190,7 @@ def models_by_window_2(
                 if train_features.shape[0] == 0: continue
                 if test_window.shape[0] == 0: continue
 
-                probabilities = fit_func(train_features, test_window, info=False, smote=True, f_select=True)
+                probabilities = fit_func(train_features, test_window, info=False, smote=True, f_select=False)
                 
                 # classify predictions
                 n_outs = test_window.shape[0]
@@ -223,13 +252,44 @@ if __name__ == "__main__":
     # print(x.loc[x['year']==2024].shape, 'n results from 2024')
     # print(x.shape, 'after drop na')
     # print((x == '\\N').sum())
-    res = models_by_window_2(2024, 1, 2, 
-                       data='../../data/clean_model_data2.csv',
-                       max_year=2025, 
-                       model_type='xgb', 
-                       debug=False,
-                       fit_func=xgb_fit,
-                       cat_features=cat_features,
-                       feature_vals=None,
-                       dbg_count=None)
-    print(res)
+    confidence_eval= False
+    if confidence_eval == False:
+        res = models_by_window_2(2024, 1, 10, 
+                            data='../../data/clean_model_data2.csv',
+                            max_year=2025, 
+                            model_type='xgb', 
+                            debug=False,
+                            fit_func=xgb_fit,
+                            cat_features=cat_features,
+                            feature_vals=None,
+                            dbg_count=None)
+        print(res)
+        res.to_csv("../experiments/un-scaled_points_sample.csv", index=False)
+    
+    elif confidence_eval: 
+        n_pts = 15
+        results = np.zeros(n_pts)
+        for i in range(n_pts):
+            res = models_by_window_2(2024, 1, 14, 
+                            data='../../data/clean_model_data2.csv',
+                            max_year=2025, 
+                            model_type='xgb', 
+                            debug=False,
+                            fit_func=xgb_fit,
+                            cat_features=cat_features,
+                            feature_vals=None,
+                            dbg_count=None)
+            results[i] = res.loc[res['n']==7,'F1 Score'].item()
+        
+        from scipy.stats import norm
+
+        alpha = 0.05
+        crit_point = norm.ppf(1 - alpha/2)
+        # normal distribution by CLT
+
+        dev = crit_point * (results.std()/(n_pts)**0.5)
+        min_pt = results.mean() - dev
+        max_pt = results.mean() + dev
+        
+        print(f"[INFO]: confidence interval = {results.mean()} +/- {dev}")
+        print(f"[INFO]: explicit confidence interval = [{min_pt}, {max_pt}]")

@@ -4,7 +4,8 @@ There were many approaches that we considered in attempting to make the most acc
 
 The first step of the project was creating a function that could accept 
 a specified method, 
-and return the results of training on data windos of size up to a specified value of $n$. This
+and return the results of training on data windows of size up to a specified value of $n$ (See our code for more specific details of 
+this implementation [models_by_window.py](https://github.com/Yoshi234/f1-fanatasy-analysis/blob/main/code/modeling/models_by_window.py)). This
 function was successful and laid the foundation for comparing different
 variable selection and modeling processes. The function works by
 iterating over every combination of round, year, and $n$ selected for the fitting procedure, and then trains an XGBoosting model over the $n$ previous races to predict podium finish outcomes on the next race in sequence. After predictions are made for each race, the function summarizes performance metrics for each value of $n$. 
@@ -31,16 +32,15 @@ We also experimented with decision trees. The decision trees showed some promisi
 generate high F1 scores for individual races. Unfortunately, the decision trees were prone to overfitting which limited their effectiveness.
 
 At this point we wanted to try out automatic feature selection. This was done using XGBoost. The thought here
-was also that the models could benefit from interaction features implemented by XGBoost. This approach however also
-did not perform very well. After fitting XGBoost over a series of 
+was also that the models could benefit from interaction features implemented by XGBoost. However, this approach did not perform well either. After fitting XGBoost over a series of 
 data window sizes, we found that a model which included all of the 
-features typically performed worse relative a model with far 
+features typically performed worse relative to a model with far 
 fewer features. This indicated that features were not adequately being
 selected, since their effect could have been ignored in a full model
-if it were. 
+if they were. 
 
 Additionally, we observed higher F1 scores after implementing synthetic minority over-sampling or SMOTE.
-Up to this point, our classification problem had been imbalanced. Only 3/20 or 15% of results were positive (podium) classifications.
+Up to this point, our classification problem had been imbalanced. Only 3/20 or 15% of results were positive (podium) classifications for each race.
 This means that our models were biased toward negative (non-podium) classifications. By using SMOTE, the minority (positive)
 classifications are randomly resampled from the minority distribution until the number of positive and negative classifications
 are more balanced. This balanced classification technique improved performance by 15-20% in F1 score. 

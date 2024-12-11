@@ -149,11 +149,15 @@ def add_interaction(data, vars=[], drivers=[], constructors=[]):
 
 
 def add_podiums(n, data = None, year = 2021, round = 12):
-    train_df = get_data_in_window(n, year, round-1, track_dat=data)
-    test_df = get_data_in_window(1, year, round, track_dat=data)
+    '''
+    Adds the number of podiums over the last n races as a feature 
+    for use in predicting podium finish outcomes
+    '''
+    train_df = get_data_in_window(n, year, round, track_dat=data)
+    # test_df = get_data_in_window(1, year, round, track_dat=data)
     
     d_ids_train = train_df['driverId'].unique()
-    d_ids_test = test_df['driverId']
+    # d_ids_test = test_df['driverId']
 
     if round - n - 10 <= 0:
         n_l_ps = round - n - 1
@@ -163,7 +167,7 @@ def add_podiums(n, data = None, year = 2021, round = 12):
     for j in range(1, n_l_ps + 1):
         var_string = 'Last_'+str(j)+'_Podiums'
         train_df[var_string] = [0 for i in train_df['driverId']]
-        test_df[var_string] = [0 for i in d_ids_test]
+        # test_df[var_string] = [0 for i in d_ids_test]
     
     for r in train_df['round'].unique():
         last_10 = get_data_in_window(n_l_ps, year, r-1)
@@ -187,27 +191,29 @@ def add_podiums(n, data = None, year = 2021, round = 12):
                 
                 train_df.loc[(train_df['driverId'] == d) & (train_df['round'] == r), var_string_2] = podiums
 
-    for r in test_df['round'].unique():
-        last_10 = get_data_in_window(n_l_ps, year, r-1)
+    # for r in test_df['round'].unique():
+    #     last_10 = get_data_in_window(n_l_ps, year, r-1)
 
-        for d in d_ids_test:
-            d_df = last_10.loc[last_10['driverId'] == d]
-            podiums = 0
-            num_prev_races = 0
-            for r2 in np.sort(last_10['round'].unique())[::-1]:
-                p = d_df.loc[d_df['round'] == r2, 'positionOrder'].item()
-                #print(type(p))
+    #     for d in d_ids_test:
+    #         d_df = last_10.loc[last_10['driverId'] == d]
+    #         podiums = 0
+    #         num_prev_races = 0
+    #         for r2 in np.sort(last_10['round'].unique())[::-1]:
                 
-                if p <= 3:
-                    podiums += 1
-                num_prev_races += 1
-                var_string_2 = 'Last_'+str(num_prev_races)+'_Podiums'
+    #             p = d_df.loc[d_df['round'] == r2, 'positionOrder']
+    #             #print(type(p))
+    #             p = p.item()
                 
-                #print(podiums)
+    #             if p <= 3:
+    #                 podiums += 1
+    #             num_prev_races += 1
+    #             var_string_2 = 'Last_'+str(num_prev_races)+'_Podiums'
                 
-                test_df.loc[(test_df['driverId'] == d) & (test_df['round'] == r), var_string_2] = podiums
+    #             #print(podiums)
+                
+    #             test_df.loc[(test_df['driverId'] == d) & (test_df['round'] == r), var_string_2] = podiums
 
-    return train_df, test_df, ['Last_'+str(i)+'_Podiums' for i in range(1, n_l_ps + 1)]
+    return train_df, ['Last_'+str(i)+'_Podiums' for i in range(1, n_l_ps + 1)]
 
 
 if __name__ == "__main__":

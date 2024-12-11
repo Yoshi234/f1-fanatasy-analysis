@@ -6,7 +6,7 @@ In the context of Formula 1, this makes sense because we tend to see teams
 and drivers go through highs and lows throughout a season. Most of the time,
 the podium is not static from race to race.
 
-We found that medium sized training windows (6 to 9 races) perfom better than
+We found that medium sized training windows (6 to 8 races) perfom better than
 small or large sized windows. The interpretation for this finding could be that
 a small training window is lacking suffient data while a large training window
 has too much data, some of which is no longer relevant.

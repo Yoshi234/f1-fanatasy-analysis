@@ -2,7 +2,7 @@ The Formula 1 dataset we used has 72 features where each observation represents 
 of 1 driver in a specific race. For example, if a race has 20 participating drivers, 
 then there will be 20 records associated with that specific race. Many of the features
 are related to characteristics of a track such as the average speed, the maximum speed,
-the longest staight length, the number of corners, etc. Other features tell information
+the longest straight length, the number of corners, etc. Other features tell information
 about the track conditions such as temperature, humidity, precipitation, and windspeed.
 Lastly, some of the most important features have to do with how a driver or team has
 performed in previous races. These features convey performance through how many points
