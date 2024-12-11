@@ -1,0 +1,11 @@
+# STAT4255 Final Project: F1 Race Podium Forecasting
+
+{{< include description.qmd >}}
+
+{{< include prelim_approach.qmd >}}
+
+{{< include final_approach.qmd >}}
+
+{{< include results.qmd >}}
+
+{{< include conclusions.qmd >}}
