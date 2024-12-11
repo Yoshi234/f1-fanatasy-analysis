@@ -42,6 +42,8 @@ This means that our models are biased toward negative (non-podium) classificatio
 classifications are randomly resampled from the minority distribution until the number of positive and negative classifications
 are more balanced. This balanced classification technique improved performance by 15-20% in F1 score. 
 
+# Selected Approach and Methodology
+
 This led us to our final approach which was using an xg boosting regressor for predicting 
 the classification value (0 or 1 - the result was the mean value of 0 and 1 for each region
 selected by the regressor - which amounts to the probability of a positive classification). 
