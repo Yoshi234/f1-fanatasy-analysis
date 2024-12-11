@@ -1,0 +1,20 @@
+The results which we have gathered confirm that our hypothesis was correct.
+It can be observed that changing the amount of training data (changing n)
+has a differential effect on the performance of a model on the test data.
+In the context of Formula 1, this makes sense because we tend to see teams
+and drivers go through highs and lows throughout a season. Most of the time,
+the podium is not static from race to race.
+
+We found that medium sized training windows (6 to 9 races) perfom better than
+small or large sized windows. This could be interpretted as
+
+<!--
+Overall our hypothesis was correct
+changing the amount of data we train over has a differtial effect on the performance of the model on races/data
+this makes sense because of how we think of the results changing over time
+medium size windows work better
+validated our hypothesis that standardising the distribution of points improves performance
+for future work we have several goals; first we need to automate the feature selection process so that there isn't any neeed for manual feature selection
+
+so the reason that feature selection is important is that it can assist with determining the optimal set of features for each of the races or the subset of races that we're training over so for example when a lot in the series of various is in that so that Charles might be a better predictor of performance on the next race and sequence but that may not be true of some other set of races that occur say from after Monaco 2024 he didn't do so well so he probably wouldn't be such a great predictor of podium finishing prediction after that point so you can see how like different features overtime will have a differential effect and so if we're able to tailor the features that are important over different subsets of races then we'll be able to perform better overall or at least that's what we hypothesize alternatively this could lead to overfitting on or a less robust methodology which means that our performance actually decreases but that's yet to be determined by future method evaluations additionally it would be good to incorporate more relevant data even more relevant data such as FP1 session or FP2SESSION FP3 session evaluations which examine the relative speed and performance of different cars and drivers from a lap time perspective over different settings like tire compound run length so for example a long run might be 20 to 30 laps versus 17 laps for a short run how drivers compare across that all of these different features are extremely useful but we haven't yet been able to integrate into our modeling which means that we're naturally losing out on a lot of very relevant information
+-->
