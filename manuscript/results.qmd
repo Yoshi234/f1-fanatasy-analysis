@@ -93,3 +93,5 @@ scaled_pts
 ```
 
 As you can see, F1 scores improve substantially when using a scaled point distribution, indicating that this change was predictively beneficial. 
+All of these methods and results can be replicated by cloning our repository: 
+[f1-fantasy-analysis](https://github.com/Yoshi234/f1-fanatasy-analysis)
