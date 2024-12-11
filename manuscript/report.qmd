@@ -1,3 +1,16 @@
+---
+title: "F1 Race Outcome Prediction"
+bibliography: ref.bib
+author: 
+    - name: Joshua Lee
+    - name: Nicholas Pfeifer
+format: 
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+---
+
 # STAT4255 Final Project: F1 Race Podium Forecasting
 
 {{< include description.qmd >}}
@@ -9,3 +22,6 @@
 {{< include results.qmd >}}
 
 {{< include conclusions.qmd >}}
+<!-- 
+Include discussion of future work. 
+-->

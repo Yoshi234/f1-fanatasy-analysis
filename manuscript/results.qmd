@@ -1,0 +1,95 @@
+# Experimental Results
+
+**Parameterizing the training data window size**
+
+In order to validate our approach, we performed several experiments 
+over the data. First, we thoroughly investigated the performance of the 
+XGBoost model over 2024 F1 race data (races spanning from 
+Bahrain 2024 to Qatar 2024) for a fixed selection of features, 
+namely: 
+
++ The proportion of points in the standings belonging to each 
+  driver before a given race
++ Whether or not a driver drove for McLaren
++ Whether or not a driver drove for RedBull
++ Whether or not a driver was Charles Leclerc
++ The maximum track speed for a given circuit
++ The number of previous constructor wins
++ The number of podiums scored by a given driver over the previous 2, 3, and 4 races
+
+Using these features, we fitted XGBoost models over data window sizes of 2 to 11 rounds. 
+Because XGBoost's fitting algorithm is stochastic, we needed to perform multiple 
+runs to generate a confidence interval over the true F1 score of the model on 
+the data. From a series of initial runs, we determined that 7 races was the strongest
+data window size, and then ran 15 iterations to estimate the standard errors of this 
+estimate. Using CLT, we can approximate the distribution of mean F1 scores for training 
+on 7 races of data by a normal distribution (as long as the sample size is sufficiently large). 
+
+Namely, for training an XGBoosing model over data from the previous 7 races,
+we observe an average F1 score of 0.536 over the next race in sequence 
+(for all races from Bahrain to Qatar). The standard deviation of average F1 scores
+achieved by these models was 0.0072, and so a 95% confidence interval for an 
+estimate of the average F1 score achieved by XGBoost trainged over the prior 7 
+races of data in 2024 was 
+
+$$
+[0.5224, 0.5506]
+$$
+
+This is a nice bound, since it means that our XGBoost model typically performs 
+well for race data windows of size 7 (better than random guessing). To see that
+seven is the best choice, the results for window sizes from 2 to 11 can be seen 
+below: 
+
+```{python}
+import pandas as pd
+
+res = pd.read_csv("../code/experiments/results_window_sample.csv")
+res
+```
+
+<!--fill in when experiment is finished-->
+
+**The utility of track features**
+
+On their own, track features are not explicitly useful. The reason for this is that 
+for a given track the track features will be the same for all drivers. As such, if we 
+do not identify the drivers in question, the podium outcomes will be randomly associated
+with the track features themselves. Thus, we include the driver and constructor 
+information to interact with these variables to achieve improved performance outcomes. 
+
+Namely, we consider McLaren and Red Bull as teams and Charles Leclerc as a individual 
+driver for interaction with track features. To determine if these features make a 
+meaningful performance contribution, we compare baseline models which do and do not 
+include track features. Unfortunately, we find that often times including track features
+actually diminished performance on the whole. Perhaps the reason for this was that 
+different track features are differentially useful across a given race season, and so 
+the average F1 score fitted on models for features that are not useful over all 
+possible windows adds unecessary noise and diminishes performance. 
+
+**The utility of scaled point distributions**
+
+To determine if scaling the point distribution was useful or not, we compared the 
+performance of XGboost models fitted only on raw previous driver point totals 
+and scaled previous driver point totals (driver scaled points = driver total points / number
+of points awarded to all drivers). 
+
+Below you can see the comparative performance of XGboost models trained over data 
+from 2 to 9 of the previous races on the next race in sequence when scaled 
+and unscaled driver point totals are given: 
+
+***Raw (Unscaled) point totals***
+
+```{python}
+unscaled_pts = pd.read_csv("../code/experiments/un-scaled_points_sample.csv")
+unscaled_pts
+```
+
+***Scaled point totals***
+
+```{python}
+scaled_pts = pd.read_csv("../code/experiments/scaled_points_sample.csv")
+scaled_pts
+```
+
+As you can see, F1 scores improve substantially when using a scaled point distribution, indicating that this change was predictively beneficial. 

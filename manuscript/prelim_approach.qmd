@@ -1,3 +1,5 @@
+# Preliminary Methods and Approach
+
 There were many approaches that we considered in attempting to make the most accurate predictions.
 
 The first step of the project was creating a function that could use an approach
@@ -40,9 +42,21 @@ This means that our models are biased toward negative (non-podium) classificatio
 classifications are randomly resampled from the minority distribution until the number of positive and negative classifications
 are more balanced. This balanced classification technique improved performance by 15-20% in F1 score. 
 
-This led us to our final approach which was using an xg boosting regressor and conducting manual forward selection.
-The manual selection process consisted of picking features one at a time, checking if they improved...
+This led us to our final approach which was using an xg boosting regressor for predicting 
+the classification value (0 or 1 - the result was the mean value of 0 and 1 for each region
+selected by the regressor - which amounts to the probability of a positive classification). 
+In hindsight, we could have also used an XGB classifier with predict probabilities to 
+rank the top 3 most likely podium finishers and classify podium finishes in that way. 
+Then, we manually selected features by running models for each feature one at a time, checking if they improved the average F1 score of predictions over the 2024 race result data in addition to
+features which had performed best previously. 
+The features we ultimately settled on are listed in the results section of this report. 
 
+Additionally, we utilized a variation of SMOTE (SMOTE-NC) to improve the balance of the 
+training data distribution. This helped to improve the performance of our methods as seen by the resulting 20% improvement in F1 scores compared to not using this technique.
+
+Our experimental evaluations led us to determine that 6 to 8 races was the 
+optimal number of races to train on for predicting the results of the next race in 
+sequence. Additional information about these methods can be seen in the results section. 
 
 <!--
 Logistic regression
