@@ -8,3 +8,4 @@ build.sh
 # graph outputs - don't want to dirty up repo
 /scripts/testing_2025/day1
 /scripts/testing_2025/day2
+/scripts/testing_2025/day3
