@@ -24,6 +24,8 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
         
         if i==1: 
             standings = session.results
+            print("[DEBUG-27]: drivers = {}".format(standings['Abbreviation'].unique()))
+            print("[DEBUG]: standings keys = {}".format(standings.keys()))
             standings['round'] = i
         else:
             # add the round data into the dataframe before hand
@@ -68,8 +70,13 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
             # set the current rank
             standings.loc[standings['round'] == j, 'driver_standing'] = standings.loc[standings['round'] == j, 'cum_points'].rank(ascending=False, method='first')  
 
-            if standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'Position'].item() == 1:
-                cur_wins += 1
+            tmp = standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'Position']
+            if len(tmp) == 1:
+                if tmp.item() == 1:
+                    cur_wins += 1
+            elif len(tmp) > 1:
+                if tmp[0] == 1:
+                    cur_wins += 1
             
             standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'cum_driver_wins'] = cur_wins
 
@@ -86,6 +93,9 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
         # get ranks for all teams
         ranks = standings.loc[(standings['round'] == j), ['TeamName', 'construct_points']].drop_duplicates()
         ranks['rank'] = ranks['construct_points'].rank(ascending=False, method='first')
+        
+        print("[DEBUG]: drivers = {}".format(standings['DriverId'].unique()))
+        exit()
 
         # set the ranks
         for driver in standings['DriverId'].unique():

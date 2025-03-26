@@ -186,6 +186,7 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
         og_dat = pd.read_csv("../../data/clean_model_data2.csv")
     else:
         og_dat = pd.read_feather('../../data/clean_model_data.feather')
+        print("[INFO]: Reading feather starter data")
     
     # get current datetime
     if current_date is None:
@@ -202,6 +203,8 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
     else: 
         prev_round = None # set initially to None for standings and such
         p_r = 0
+    print("[INFO]: starting round = {}".format(p_r))
+    
     # schedule includes the round data - check against the most
     # recent round to see which one we start from
     schedule = fastf1.get_event_schedule(curr_yr)
@@ -227,7 +230,9 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
         c1 = circuits.loc[circuits['location']==l1]
         if test: 
             print("[INFO]: c1 = {}".format(c1))
-        if c1.shape[0] == 0: print("[ERROR]: no circuits found for {}".format(l1))
+        if c1.shape[0] == 0: 
+            print("[ERROR]: no circuits found for {}".format(l1))
+        else: print("[SUCCESS]: Circuits found for {}".format(l1))
 
         # set race id
         if r1_id is None and og_dat.shape[0] != 0:
@@ -242,7 +247,16 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
         s1 = fastf1.get_session(curr_yr, record['RoundNumber'], 'R')
         s1.load(telemetry=False, weather=False)
         base = s1.results
-        base['alt'] = c1['alt'].item()
+        
+        # catch potential issues
+        if 'alt' in base.keys():
+            if len(base['alt'] == 1):
+                base['alt'] = c1['alt'].item()
+            elif len(base['alt'] > 1): 
+                base['alt'] = base['alt'][0]
+        else:
+            base['alt'] = np.nan
+            
         if test: 
             print("[INFO]: c1['alt'] = {}".format(c1['alt']))
             print("[INFO]: c1['circuitId'] = {}".format(c1['circuitId']))
@@ -256,27 +270,76 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
                             'Q3':'q3'})
         base['ref_name'] = s1.event.EventName
         base['event_name'] = s1.event.EventName
-        base['circuitId'] = c1['circuitId'].item() 
+        
+        if 'circuitId' in c1.keys():
+            if len(c1['circuitId']) == 1:
+                tmp_cid = c1['circuitId'].item() 
+                base['circuitId'] = tmp_cid
+            elif len(c1['circuitId'] > 1): 
+                tmp_cid = c1['circuitId'][0]
+                base['circuitId'] = tmp_cid
+            else:
+                base['circuitId'] = np.nan
+        else:
+            base['circuitId'] = np.nan
 
         # add track speed data
         # print("[DEBUG]: {}".format(base['event_name']))
         evnt_qry = pd.DataFrame(
             {"year":[curr_yr], 
              "name":[s1.event.EventName],
-             "circuitId":[c1['circuitId'].item()]})
-        speeds = get_track_speeds(event=evnt_qry)
+             "circuitId":[tmp_cid]})
+        speeds = get_track_speeds(event=evnt_qry) # returns none upon failure
+        
+        if speeds is None:
+            continue # move on to next event on the calendar if track speeds fail to aggregate
+            
         speeds = pd.concat([speeds]*len(base), ignore_index=True)
         base = pd.concat([base.reset_index().drop('index', axis=1), speeds], axis=1)
 
-        # set constructor and driver value
-        for driver in base['DriverId'].unique():
-            driver_x = drivers.loc[drivers['driverRef']==driver]
-            if len(driver_x['driverRef']) > 0:
-                base.loc[base['DriverId']==driver, 'driverId']=int(driver_x['driverId'].item())
-                base.loc[base['DriverId']==driver, 'resultId']=res_id
+        print("[INFO]: base.keys() = {}".format(base.keys()))
+        print("[INFO]: fullnames = {}".format(base['FullName']))
+        print("[INFO]: first name = {}".format(base['FirstName']))
+        print("[INFO]: last name = {}".format(base['LastName']))
+        # set local and api-based keys for the driver information
+        
+        if base['DriverId'].nunique() > 1:
+            print("[INFO]: DriverId available. Using 'DriverId' value")
+            print("[INFO]: DriverIds = {}".format(base['DriverId'].unique()))
+            print("[INFO]: number of unique ids = {}".format(len(base['DriverId'].unique())))
+            fastf1_dkey=['DriverId']
+            local_dkey=['driverRef']
+            
+        elif (base['LastName'].nunique() > 1) and (base['FirstName'].nunique() > 1):
+            print("[INFO]: DriverId unavailable, using first and last name")
+            fastf1_dkey="FullName"
+            local_dkey="fullname"
+
+        # TODO TODO TODO TODO : merge the 'DriverId' values based on Abbreviation values
+        # and then drop the Abbreviation column. Actually, this isn't necessary, 
+        # somewhere later, the 
+            
+        for driver in base[fastf1_dkey].unique():
+            driver_x = drivers.loc[drivers[local_dkey]==driver]
+            
+            print("[INFO]: driver_x = {}".format(driver_x))
+            if len(driver_x[local_dkey]) > 0:
+                if len(driver_x['driverId']) > 1:
+                    d_id_val = driver_x['driverId'][0]
+                elif len(driver_x['driverId']) == 1:
+                    d_id_val = driver_x['driverId'].item()
+                else:
+                    print("[ERROR]: driverId not available for {}".format(driver))
+                    
+                base.loc[base[fastf1_dkey]==driver, 'driverId']= d_id_val
+                base.loc[base[fastf1_dkey]==driver, 'resultId']=res_id
                 res_id += 1
             else:
                 print("[INFO]: add {} info to the drivers.csv file".format(driver))
+        
+        print("[INFO]: base.keys() [1] = {}".format(base.keys()))
+                
+        # check availability of TeamId value
         for construct in base['TeamId'].unique():
             construct_x = constructors.loc[constructors['constructorRef']==construct]
             if len(construct_x['constructorRef']) > 0:
@@ -284,6 +347,8 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
             else:
                 print("[INFO]: add {} info to the constructors.csv file".format(construct))
 
+        print("[INFO]: base.keys() [2] = {}".format(base.keys()))
+        
         # reset column orderings
         base['lng'] = c1['lng']
         base['lat'] = c1['lat']
@@ -322,6 +387,7 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
     full_dat[['fastestLap', 'rank', 'fastestLapTime', 'fastestLapSpeed', 'laps',
               'statusId']] = np.nan
     
+    # subset the necessary columns of the data set
     result = pd.concat([full_dat[og_dat.keys()].reset_index(drop=True),
                         og_dat.reset_index(drop=True)], 
                         axis=0)
@@ -332,4 +398,4 @@ def fetch_new(current_date=None, key=None, test=False, no_key=True):
     return result
 
 if __name__ == "__main__":
-    fetch_new('2024-11-18')
+    fetch_new()

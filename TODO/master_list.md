@@ -1,3 +1,23 @@
+## 3/26/2025
+
+1. update the standings data to use the same driver key selection
+   based on the availability of "DriverId" or "FullName"
+2. Rerun the data sourcing so that the data is complete enough for 
+   analysis to be performed. 
+   
+## 3/25/2025
+
+1. update the data sourcing so that the key availability is 
+   checked. It seems that driver ids are not available for 
+   all races, but abbreviations are - we may want to have an 
+   option to check if the number of unique driver Id's is 0, 
+   and then access data based on that 
+   - the value they provide is equivalent to the "code" value in 
+     the drivers.csv data set
+2. Need to update the onedrive folder with the most up to 
+   date data so that I don't need to keep re-running the same 
+   code over and over again
+
 ## PROJECT TASK LIST 
 
 > set [done] after you are finished with a given task 

@@ -79,7 +79,7 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
     EndUrl = f"?unitGroup=metric&elements=datetime%2Ctempmax%2Ctempmin%2Ctemp%2Cdew%2Chumidity%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Cwindspeed%2Cwinddir%2Cvisibility&include=days&key={APIkey}&contentType=json"
     
     if api_key is None:
-        print("[ERROR]: Missing data for event {}".format(loc_dat['event_name'].unique()[0]))
+        print("[ERROR]: Missing weather data for event {}".format(loc_dat['event_name'].unique()[0]))
         loc_dat[search_keys] = np.nan
         return loc_dat
     
