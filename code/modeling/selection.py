@@ -147,7 +147,6 @@ def add_interaction(data, vars=[], drivers=[], constructors=[]):
             # print(v_string)
     return data2
 
-
 def add_podiums(n, data = None, year = 2021, round = 12):
     '''
     Adds the number of podiums over the last n races as a feature 
@@ -214,7 +213,6 @@ def add_podiums(n, data = None, year = 2021, round = 12):
     #             test_df.loc[(test_df['driverId'] == d) & (test_df['round'] == r), var_string_2] = podiums
 
     return train_df, ['Last_'+str(i)+'_Podiums' for i in range(1, n_l_ps + 1)]
-
 
 if __name__ == "__main__":
     print(add_interaction)

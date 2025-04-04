@@ -1,3 +1,75 @@
+## 4/02/2025
+
++ come up with a method to measure performance characteristics
+  of cars and drivers over sectors of the track. For example, 
+  taking the speed of the driver's qualifying lap over each 
+  corner of the track. 
+
+## 3/31/2025
+
+data processing seems to be fixed completely. future updates - add data
+sourcing for weather directly from fastf1 instead of using the separate
+weather API - unless the queries are fixed - I can do 1000 per day it 
+seems using the free version. 
+
+next steps - train a model based on the previous 7 results. Weight the 
+past two - three results exponentially more heavily than those from 
+last season. 
+
+Desirable weighting:
++ China 60% - should be the overwhelming weight
++ Australia 20%
++ 20% the previous 5 races from last year
+
+Apply SMOTE and use l1-lasso regression to do the feature selection 
+over the training data. 
+
+## 3/30/2025
+
+1. fix NaN grid order and driver and team ID's
+   I believe this is due to a lack of ID's for some teams 
+   with new names that have not been accounted for in the data. 
+   Will need to print the new values so that they can match 
+   in the data. 
+   - this isuse is fixed now - was a data sourcing issue related 
+     to the version of fastf1 being used. Data fixed now. 
+2. Another issue popped up though:
+
+```python
+Traceback (most recent call last):
+  File "/home/jjl20011/snap/snapd-desktop-integration/253/Lab/Projects/sports-analysis/f1-fanatasy-analysis/code/setup/fetch_new_dat.py", line 433, in <module>
+    fetch_new(debug=True)
+  File "/home/jjl20011/snap/snapd-desktop-integration/253/Lab/Projects/sports-analysis/f1-fanatasy-analysis/code/setup/fetch_new_dat.py", line 334, in fetch_new
+    for driver in base[fastf1_dkey].unique():
+  File "/home/jjl20011/miniconda3/envs/R_env/lib/python3.9/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'SessionResults' object has no attribute 'unique'
+```
+
+## 3/29/2025
+
+1. fix this bug
+
+```python
+Traceback (most recent call last):
+  File "/home/jjl20011/snap/snapd-desktop-integration/253/Lab/Projects/sports-analysis/f1-fanatasy-analysis/code/setup/fetch_new_dat.py", line 401, in <module>
+    fetch_new()
+  File "/home/jjl20011/snap/snapd-desktop-integration/253/Lab/Projects/sports-analysis/f1-fanatasy-analysis/code/setup/fetch_new_dat.py", line 391, in fetch_new
+    result = pd.concat([full_dat[og_dat.keys()].reset_index(drop=True),
+  File "/home/jjl20011/miniconda3/envs/R_env/lib/python3.9/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+  File "/home/jjl20011/miniconda3/envs/R_env/lib/python3.9/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/home/jjl20011/miniconda3/envs/R_env/lib/python3.9/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['constructorId'] not in index"
+```
+
+It seems that somehow the constructorId key is being dropped from the data.
+This is probably happening somewhere in the set_standings_data function. 
+Or, set prev_round data function. Please examine these to see where 
+the issues are. 
+
 ## 3/26/2025
 
 1. update the standings data to use the same driver key selection

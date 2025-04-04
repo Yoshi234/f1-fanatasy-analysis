@@ -24,8 +24,8 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
         
         if i==1: 
             standings = session.results
-            print("[DEBUG-27]: drivers = {}".format(standings['Abbreviation'].unique()))
-            print("[DEBUG]: standings keys = {}".format(standings.keys()))
+            # print("[DEBUG-27]: drivers = {}".format(standings['Abbreviation'].unique()))
+            # print("[DEBUG]: standings keys = {}".format(standings.keys()))
             standings['round'] = i
         else:
             # add the round data into the dataframe before hand
@@ -43,17 +43,30 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
     
     # return if we are not on the second round at least
     if cur_round == 1: return standings
+    
+    # check if the DriverId rating is available
+    driver_key = 'DriverId'
+    if len(standings['DriverId'].unique()) > 2: 
+        print('len(standings[DriverId]) = {}'.format(len(standings['DriverId'])))
+        driver_key = 'DriverId'
+        driver_loc_key = 'driverRef'
+    elif len(standings['FullName'].unique()) > 2:
+        driver_key = 'FullName'
+        driver_loc_key = 'fullname'
+    else: 
+        print("[ERROR]: Cannot find driver name key. Exiting ...")
+        exit()
 
-    for driver in standings['DriverId'].unique():
+    for driver in standings[driver_key].unique():
         # for each driver, set a unique number of personal wins
 
         cur_wins = 0
         for j in range(2,cur_round):
             # this series will be empty if no matches are found
-            prev_cum_points = standings.loc[(standings['round'] == j-1) & (standings['DriverId'] == driver), 'cum_points'] 
+            prev_cum_points = standings.loc[(standings['round'] == j-1) & (standings[driver_key] == driver), 'cum_points'] 
 
             # curr points
-            curr_points = standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'Points']
+            curr_points = standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), 'Points']
 
             if curr_points.empty: continue # skip this iteration
 
@@ -62,15 +75,15 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
                 k = j-1 
                 while (prev_cum_points.empty) and k>1:
                     k -= 1
-                    prev_cum_points = standings.loc[(standings['round'] == k) & (standings['DriverId'] == driver), 'cum_points']
+                    prev_cum_points = standings.loc[(standings['round'] == k) & (standings[driver_key] == driver), 'cum_points']
 
             # set the points
-            standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'cum_points'] = prev_cum_points + curr_points
+            standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), 'cum_points'] = prev_cum_points + curr_points
             
             # set the current rank
             standings.loc[standings['round'] == j, 'driver_standing'] = standings.loc[standings['round'] == j, 'cum_points'].rank(ascending=False, method='first')  
 
-            tmp = standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'Position']
+            tmp = standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), 'Position']
             if len(tmp) == 1:
                 if tmp.item() == 1:
                     cur_wins += 1
@@ -78,7 +91,7 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
                 if tmp[0] == 1:
                     cur_wins += 1
             
-            standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'cum_driver_wins'] = cur_wins
+            standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), 'cum_driver_wins'] = cur_wins
 
     # for constructor in standings['TeamName'].unique():
     # iterate through the rounds
@@ -94,32 +107,36 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
         ranks = standings.loc[(standings['round'] == j), ['TeamName', 'construct_points']].drop_duplicates()
         ranks['rank'] = ranks['construct_points'].rank(ascending=False, method='first')
         
-        print("[DEBUG]: drivers = {}".format(standings['DriverId'].unique()))
-        exit()
+        # print("[DEBUG]: drivers = {}".format(standings[driver_key].unique()))
+        # print("[DEBUG]: driver_key = {}".format(driver_key))
+        # exit()
 
         # set the ranks
-        for driver in standings['DriverId'].unique():
+        for driver in standings[driver_key].unique():
             # if j==1: print(driver)         
             # curr points
-            curr_points = standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), 'Points']
+            curr_points = standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), 'Points']
 
             if curr_points.empty: continue # skip this iteration
 
             if debug:
                 try:
-                    x_out = standings.loc[standings['DriverId']==driver,'TeamName'].drop_duplicates().items()[0] # index 1
+                    x_out = standings.loc[standings[driver_key]==driver,'TeamName'].drop_duplicates().items()[0] # index 1
                 except:
-                    x_out = standings.loc[standings['DriverId']==driver,'TeamName'].drop_duplicates()
+                    x_out = standings.loc[standings[driver_key]==driver,'TeamName'].drop_duplicates()
                     print("[DEBUG]: team = {}".format(x_out))
-            team = standings.loc[standings['DriverId'] == driver, 'TeamName'].drop_duplicates().iloc[0]
-            standings.loc[(standings['round'] == j) & (standings['DriverId'] == driver), "construct_rank"] = ranks.loc[ranks['TeamName']==team, 'rank'].item()
+            team = standings.loc[standings[driver_key] == driver, 'TeamName'].drop_duplicates().iloc[0]
+            standings.loc[(standings['round'] == j) & (standings[driver_key] == driver), "construct_rank"] = ranks.loc[ranks['TeamName']==team, 'rank'].item()
     
     # set the year of the data
     standings['year'] = year
-    for driver in standings['DriverId'].unique():
-        driver_x = drivers.loc[drivers['driverRef']==driver]
-        if len(driver_x['driverRef']) > 0:
-            standings.loc[standings['DriverId']==driver, 'driverId']=driver_x['driverId'].item()
+    for driver in standings[driver_key].unique():
+        driver_x = drivers.loc[drivers[driver_loc_key]==driver]
+        if len(driver_x[driver_loc_key]) > 0:
+            if len(driver_x[driver_loc_key]) == 1:
+                standings.loc[standings[driver_key]==driver, 'driverId']=driver_x['driverId'].item()
+            else:
+                standings.loc[standings[driver_key]==driver, 'driverId']=driver_x['driverId'].values[0]
         else:
             print("[INFO]: add {} info to the drivers.csv file".format(driver))
         

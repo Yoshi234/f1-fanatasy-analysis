@@ -4,7 +4,10 @@ import statsmodels.api as sm
 from ISLP import confusion_table
 import numpy as np
 from sklearn.metrics import f1_score
+from sklearn.linear_model import LassoCV
 from tqdm import tqdm
+
+# local imports
 try:
     from param_train import (
         logistic_fit, 
@@ -33,6 +36,63 @@ except: # import as module
     from .mod_point_distrib import std_pt_distrib
 import warnings
 warnings.filterwarnings('ignore')
+
+def preprocess_data(
+    input_data,
+    non_cats,
+    ratio={
+        0:1,
+        1:1,
+        2:1,
+        3:1,
+        4:3,
+        5:9
+    }
+):
+    '''
+    Args:
+    - non_cats ------ list of variables that are not categorical
+      variables. 
+    - ratio --------- dictionary of ratios for rounds 1 to n. 
+      For example - the round number is given by x duplicates in 
+      the data. This should set a much heavier weighting for the 
+      most recent races.  
+    '''
+    # get the sorted list of race_ids based on the date of the event?
+    input_data = input_data.sort_values(
+        by=['year', 'round'], ascending=[True,True]
+    )
+    # get the series of raceIds - should be sorted
+    unique_ids = input_data['raceId'].unique()
+    for r_id in unique_ids:
+        for i in range(ratio):
+            
+    
+def fit_window_model(
+    year=2025,
+    k=6,
+    round=3
+):
+    # load the data and fetch the correct data window
+    all_data = pd.read_csv("../../data/clean_model_data2.csv")
+    train_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
+    
+    # fit lasso models to get the right features
+    
+    # 1a. apply bootstrapping to get a weighted representation of the data
+    # 1b. apply SMOTE to the data to balance classes (podium v. non-podium)
+    # 1c. apply standardization (centering) so that LASSO works correctly
+    
+    # 2. evaluate over all drivers
+    
+    # 3. evaluate over all constructors
+    
+    # 4. generate (track) interactions over the significant drivers
+    
+    # 5. generate (track) interactions over significant constructors
+    
+    # 6. 
+
 
 def models_by_window_2(
     start_yr, 
