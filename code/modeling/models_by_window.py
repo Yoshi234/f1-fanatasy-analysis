@@ -3,6 +3,7 @@ from ISLP.models import (ModelSpec as MS, summarize)
 import statsmodels.api as sm
 from ISLP import confusion_table
 import numpy as np
+import fastf1
 
 from imblearn.over_sampling import (
     SMOTENC,
@@ -33,16 +34,146 @@ except: # import as module
     #     logistic_fit,
     #     xgb_fit
     # )
-    from .selection import (
+    from modeling.selection import (
         get_data_in_window, 
         get_features, 
         get_encoded_data, 
         add_interaction,
         add_podiums
     )
-    from .mod_point_distrib import std_pt_distrib
+    from modeling.mod_point_distrib import std_pt_distrib
+    # can only be accomplished by modular import
+    from setup.set_standings import (
+        get_standings_data
+    )
+    from setup.get_track_augment import (
+        get_track_speeds
+    )
+    
 import warnings
 warnings.filterwarnings('ignore')
+
+dq_scores = {
+    1: 10, 2: 9, 3: 8, 4: 7, 5:6,
+    6:5, 7:4, 8:3, 9:2, 10:1, 11:0,
+    12:0, 13:0, 14:0, 15:0, 16:0, 
+    17:0, 18:0, 19:0, 20:0
+}
+dr_scores = {
+    1:25, 2:18, 3:15, 4:12, 5:10,
+    6:8, 7:6, 8:4, 9:2, 10:1, 11:0, 
+    12:0, 13:0, 14:0, 15:0, 16:0, 
+    17:0, 18:0, 19:0, 20:0
+}
+
+
+def get_forecast_data(
+    rnd=3,
+    drivers_data="../data/drivers.csv",
+    year=2025, 
+    main_keys=[
+        # 'prev_driver_points',
+        'prev_driver_position',
+        'prev_driver_wins',
+        # 'prev_construct_points',
+        'prev_construct_position',
+        'prev_construct_wins'
+    ],
+    circuits_data="../data/circuits.csv",
+    constructors_data="../data/constructors.csv",
+    main_features=[],
+    vars=[],
+    fitted_drivers=[],
+    fitted_constructors=[],
+    full_vars=[]
+):
+    '''
+    return the X data matrix to use in making predictions
+    for the next race in sequence
+    '''
+    # fetch the current round
+    schedule = fastf1.get_event_schedule(year)
+    event = schedule.loc[(schedule['RoundNumber']==rnd)]
+    
+    # get the circuits data for reference
+    drivers = pd.read_csv(drivers_data)
+    constructors = pd.read_csv(constructors_data)
+    circuits = pd.read_csv(circuits_data)
+    c1 = circuits.loc[circuits['location']==event['Location'].item()]
+    
+    # 1 get subset of data frame from previous race and use that data
+    # to perform updating
+    # print("[INFO]: round = {}".format(rnd))
+    standings = get_standings_data(rnd, year, drivers_data)
+    # print("[INFO]: standings.keys() = {}".format(standings.keys()))
+    
+    # 2 get 
+    rename_cols = {'cum_points':'prev_driver_points', 
+                   'driver_standing':'prev_driver_position', 
+                   'cum_driver_wins':'prev_driver_wins', 
+                   'construct_points':'prev_construct_points',
+                   'cum_constructor_wins':'prev_construct_wins',
+                   'construct_rank':'prev_construct_position'}
+    standings = standings.rename(columns=rename_cols)
+    
+    # get the standings for just the most recent round
+    base = standings.loc[standings['round']==rnd-1]
+    
+    # get driver Ids for each driver and team id
+    for driver in base['DriverId'].unique():
+        driver_x = drivers.loc[drivers['driverRef']==driver]
+        if len(driver_x['driverRef']) > 1:
+            d_id_val = driver_x['driverId'].values[0]
+        elif len(driver_x['driverRef'])==1:
+            d_id_val = driver_x['driverId'].item()
+        base.loc[base['DriverId']==driver, 'driverId']=d_id_val
+    
+    # get constructor Ids for eachh constructor and team id
+    for constructor in base['TeamId'].unique():
+        construct_x = constructors.loc[constructors['constructorRef']==constructor]
+        if len(construct_x['constructorRef']) == 1:
+            c_id_val = construct_x['constructorId'].item()
+        elif len(construct_x['constructorRef']) > 1:
+            c_id_val = construct_x['constructorId'].values[0]
+        base.loc[base['TeamId']==constructor, 'constructorId']=c_id_val
+    
+    # set event query and get the track speed data 
+    evnt_qry = pd.DataFrame(
+        {"year":[year-1], # get the most recent year's speed data
+         "name":[event['EventName'].item()],
+         "circuitId":[c1['circuitId'].item()]}
+    )
+    speeds = get_track_speeds(event=evnt_qry)
+    # print("[INFO]: track_speeds = \n{}".format(speeds)) # set base keys based on speed values
+    speeds = pd.concat([speeds]*len(base), ignore_index=True)
+    base = pd.concat([base.reset_index().drop('index', axis=1), speeds], axis=1)
+    
+    # standardize the points distribution
+    fit_data, std_pt_features = std_pt_distrib(base)
+    
+    # set the data encodings
+    print(fitted_drivers)
+    _, _, _, data_window = get_encoded_data(
+        fit_data, driver_vars=fitted_drivers, construct_vars=fitted_constructors)
+    d_interactions = []
+    c_interactions = []
+    for var in vars: # add all interactions one-by-one
+        data_window, d_interact = add_interaction(
+            data_window, vars=[var], drivers=fitted_drivers, ret_term_names=True, debug=False, print_debug=False)
+        d_interactions += d_interact
+        
+    # add null entries for all of the missing dirvers
+        
+    # get the subset of features we actually want
+    m_vars = main_features + d_interactions + c_interactions + std_pt_features
+    scaler = StandardScaler()
+    data_window[m_vars] = scaler.fit_transform(data_window[m_vars])
+    
+    # print("[INFO]: data keys:")
+    # for key in data_window.keys():
+    #     print(key)
+    
+    return data_window[full_vars] 
 
 def _fit_model(
     input_data,
@@ -53,9 +184,9 @@ def _fit_model(
         0:1,
         1:1,
         2:1,
-        3:1,
-        4:3,
-        5:5
+        3:2,
+        4:4,
+        5:6
     },
     save_feature_coeffs=True,
     dest_file='../../results/lasso_coeffs.csv'
@@ -80,11 +211,18 @@ def _fit_model(
     input_data = input_data.sort_values(
         by=['year', 'round'], ascending=[True,True]
     )
-    # get the series of raceIds - should be sorted
-    unique_ids = input_data['raceId'].unique()
+    # print("[INFO]: na_dat = \n{}".format(input_data.isna().sum()))
     
-    null_races = input_data.loc[input_data['raceId'].isnull()]
-    print("[INFO]: null_races = \n{}".format(null_races))
+    fit_dat = input_data.loc[~input_data['raceId'].isnull()]
+    # get the series of raceIds - should be sorted
+    unique_ids = fit_dat['raceId'].unique()
+    
+    # for r_id in input_data['raceId'].unique():
+    #     print("race = {} | n = {}".format(r_id, input_data.loc[input_data['raceId']==r_id].shape[0]))
+    
+    # null_races = input_data.loc[~input_data['raceId'].isnull()]
+    # print("[INFO]: null_races = \n{}".format(null_races))
+    # print("[INFO]: Non-null matrix = {}".format(input_data.shape[0] - null_races.shape[0]))
     for i in range(len(unique_ids)):
         for r in range(ratio[i]):
             # duplicate data n times
@@ -94,30 +232,49 @@ def _fit_model(
             else:
                 final_dat = pd.concat([final_dat, duplicates], ignore_index=True)
         
+    all_vars = main_vars + cat_features + [response_var] + ['raceId']
+    # print("[INFO]: before dropping na's")
+    # for r_id in final_dat['raceId'].unique():
+    #     sub = final_dat.loc[final_dat['raceId']==r_id]
+    #     na_sums = sub.isna().sum()
+    #     na_sums = na_sums[na_sums>0]
+    #     print("[INFO]: null vals = \n{}".format(na_sums))
+    #     print("[INFO]: entries race {} | n = {} p = {}".format(r_id, sub.shape[0], sub.shape[0]/final_dat.shape[0]))
+    #     print("---")
+        
+    final_dat = final_dat[all_vars].dropna() # drop null rows
+    # count number of rows for each unique race id
+    
+    # for r_id in final_dat['raceId'].unique():
+    #     sub = final_dat.loc[final_dat['raceId']==r_id]
+    #     print("[INFO]: entries race {} | n = {} p = {}".format(r_id, sub.shape[0], sub.shape[0]/final_dat.shape[0]))
+    
     # drop the unimportant features
-    y = input_data[response_var]
+    y = final_dat[response_var]
     
     # include categoricals and main features
     full_vars = main_vars + cat_features
-    X = input_data[full_vars]
+    # print("[INFO]: --- all fitted features ---\n{}".format(full_vars))
+    
+    X = final_dat[full_vars]
     # X = input_data.drop(exclude_vars, axis=1)
     
-    cat_indices = []
-    for col in X.keys():
-        if col in cat_features:
-            cat_indices.append(X.columns.get_loc(col))          
-    try:
-        oversample = SMOTENC(
-            categorical_features=cat_indices,
-            # k_neighbors=y.sum()-1, 
-            random_state=0
-        )
-        X, y = oversample.fit_resample(X, y)
-    except:
-        oversample = SMOTE(
-            k_neighbors=y.sum()-1
-        )
-        X, y = oversample.fit_resample(X, y)
+    # cat_indices = []
+    # for col in X.keys():
+    #     if col in cat_features:
+    #         cat_indices.append(X.columns.get_loc(col))          
+    # try:
+    #     oversample = SMOTENC(
+    #         categorical_features=cat_indices,
+    #         # k_neighbors=y.sum()-1, 
+    #         random_state=0
+    #     )
+    #     X, y = oversample.fit_resample(X, y)
+    # except:
+    #     oversample = SMOTE(
+    #         k_neighbors=y.sum()-1
+    #     )
+    #     X, y = oversample.fit_resample(X, y)
     
     model = LassoCV(cv=5, random_state=42)
     model.fit(X, y)
@@ -141,51 +298,86 @@ def fit_eval_window_model(
     year=2025,
     k=6,
     round=3,
+    target='positionOrder',
+    predictions="../../results/predictions.csv",
+    start_data="../../data/clean_model_data2.csv",
+    drivers_data="../../data/drivers.csv",
+    dest_file="../../results/lasso_coeffs.csv",
+    constructors_data="../../data/constructors.csv"
 ):    
     '''
     Enumerate list of features to be included for fitting in the model
     '''
     # load the data and fetch the correct data window
-    all_data = pd.read_csv("../../data/clean_model_data2.csv")
+    drivers_db = pd.read_csv(drivers_data)
+    all_data = pd.read_csv(start_data)
     fit_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
     
-    print("[INFO]: number of unique rounds = {}".format(fit_data['raceId'].unique()))
+    # print("[INFO]: number of unique rounds = {}".format(fit_data['raceId'].unique()))
     
     # get standardized point distributions
     fit_data, std_pt_features = std_pt_distrib(fit_data)
     
+    # NO MISSING DATA HERE
+    # print("[INFO]: (after data loading) na data = \n{}".format(fit_data[vars].isna().sum()))
+    # print("non missing = \n{}".format(fit_data[vars].count()))
     # fit lasso models to get the right features
     # no more podium prediction - just regress onto finishing position
+    
+    # reset indices to avoid concatenation issues 
+    fit_data = fit_data.reset_index(drop=True)
     drivers, constructors, _, data_window = get_encoded_data(fit_data)
     d_interactions = []
     c_interactions = []
     
-    print("[DEBUG]: --- drivers --- \n{}".format(drivers))
-    print("[DEBUG]: --- constructors --- \n{}".format(constructors))
+    check_vars = vars + drivers
+    
+    # print("[INFO]: (after feature encoding) na data = \n{}".format(data_window[check_vars].isna().sum()))
+    # print("= non missing = \n{}".format(data_window[check_vars].count()))
+    
+    # re-subset the data for only non-na values
+    data_window = data_window.loc[data_window[drivers].notna().any(axis=1)]
+    
+    # print("[INFO]: (after subsetting) na data = \n{}".format(data_window[check_vars].isna().sum()))
+    # print("= non missing = \n{}".format(data_window[check_vars].count()))
+    
+    # print("[DEBUG]: --- drivers --- \n{}".format(drivers))
+    # print("[DEBUG]: --- constructors --- \n{}".format(constructors))
     for var in vars: # add all interactions one-by-one
         data_window, d_interact = add_interaction(
-            data_window, vars=[var], drivers=drivers, ret_term_names=True)
-        data_window, c_interact = add_interaction(
-            data_window, vars=[var], constructors=constructors, ret_term_names=True)
+            data_window, vars=[var], drivers=drivers, ret_term_names=True, debug=False, print_debug=False)
+        # data_window, c_interact = add_interaction(
+        #     data_window, vars=[var], constructors=constructors, ret_term_names=True)
         
         # print("[INFO]: d_interact = {}".format(d_interact))
         # print("[INFO]: c_interact = {}".format(c_interact))
         d_interactions += d_interact
-        c_interactions += c_interact
+        # c_interactions += c_interact
+    
+    # print("[INFO]: (after adding interactions) na data = \n{}".format(data_window[d_interactions].isna().sum()))
+    # print("= non missing = \n{}".format(data_window[d_interactions].count()))
     
     m_feats = main_features + d_interactions + c_interactions + std_pt_features
-    print("[INFO]: ---- main features ---- \n{}".format(m_feats))
-    if len(m_feats) > len(data_window):
-        print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(data_window)))
+    # print("[INFO]: ---- main features ---- \n{}".format(m_feats))
+    if len(m_feats) > len(fit_data):
+        print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(fit_data)))
         exit()
     else:
-        print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(data_window)))
+        print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(fit_data)))
         
-    model = _fit_model(
+    model1 = _fit_model(
         data_window,
-        main_vars = main_features + d_interact + c_interact + std_pt_features,
-        response_var='positionOrder',
-        cat_features= drivers + constructors
+        main_vars = m_feats,
+        response_var=target[0],
+        cat_features= drivers + constructors,
+        dest_file=dest_file
+    )
+    model2 = _fit_model(
+        data_window,
+        main_vars = m_feats,
+        response_var=target[1],
+        cat_features= drivers + constructors,
+        dest_file=dest_file
     )
     # 2. evaluate over all drivers
     # 3. evaluate over all constructors
@@ -193,6 +385,39 @@ def fit_eval_window_model(
     # 5. generate (track) interactions over significant constructors
     
     # make predictions for input race year=2025, round=3
+    X2 = get_forecast_data(
+        round+1, drivers_data=drivers_data, year=year, constructors_data=constructors_data,
+        main_features=main_features, vars=vars, fitted_drivers=drivers, fitted_constructors=constructors,
+        full_vars=m_feats + drivers + constructors
+    )
+    y1 = model1.predict(X2)
+    y2 = model2.predict(X2)
+    
+    X2[target[0]] = y1
+    X2[target[1]] = y2
+    
+    print("--- {} Predictions for Round {} of {} ---".format(target, round+1, year))
+    
+    X2['Driver'] = np.nan
+    for d in drivers:
+        id_val = float(d.split("_")[-1])
+        driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'fullname'].values[0]
+        X2.loc[X2[d]==1.0, 'Driver']=driver_name
+    
+    preds = X2[['Driver', target[0], target[1]]]
+    preds['sp'] = preds['grid'].rank()
+    preds['fp'] = preds['positionOrder'].rank()
+    preds['position_change'] = preds['sp'] - preds['fp']
+    
+    preds['fantasy_pts'] = preds['position_change']*1
+    for idx, pred in preds.iterrows():
+        preds.loc[idx, 'fantasy_pts'] += dq_scores[pred['sp']]
+        preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
+    
+    print(preds.sort_values(by='positionOrder'))
+    preds.to_csv(predictions, index=False)
+    
+    
 
 
 def models_by_window_2(
@@ -468,30 +693,47 @@ def main2():
         'prev_construct_wins',
     ]
     vars = [
-        'strt_len_mean',
-        'strt_len_q1',
-        'strt_len_median',
-        'strt_len_q3',
-        'strt_len_max',
-        'strt_len_min',
-        'str_len_std',
+        # 'strt_len_mean',
+        # 'strt_len_q1',
+        # 'strt_len_median',
+        # 'strt_len_q3',
+        # 'strt_len_max',
+        # 'strt_len_min',
+        # 'str_len_std',
         'avg_track_spd',
-        'max_track_spd',
-        'corner_spd_median',
-        'corner_spd_q3',
-        'corner_spd_max',
-        'corner_spd_min',
+        # 'max_track_spd',
+        # 'corner_spd_median',
+        # 'corner_spd_q3',
+        # 'corner_spd_max',
+        # 'corner_spd_min',
         'num_slow_corners',
         'num_fast_corners',
-        'num_corners',
-        'circuit_len'
+        # 'num_corners',
+        # 'circuit_len'
     ]
+    if __name__ == "__main__":
+        start_data = "../../data/clean_model_data2.csv"
+        drivers_data="../../data/drivers.csv"
+        dest_file="../../results/lasso_coeffs.csv",
+        constructors_data="../../data/constructors.csv"
+    else:
+        start_data = "../data/clean_model_data2.csv"
+        drivers_data="../data/drivers.csv"
+        dest_file="../results/lasso_coeffs.csv"
+        constructors_data="../data/constructors.csv"
+        
     fit_eval_window_model(
         main_features=main_features,
         vars=vars,
-        k=6,
+        k=5,
         round=3,
-        year=2025
+        year=2025,
+        target=['grid','positionOrder'],
+        predictions="../results/bahrain_predictions.csv",
+        start_data=start_data,
+        drivers_data=drivers_data,
+        dest_file=dest_file,
+        constructors_data=constructors_data
     )
     
 if __name__ == "__main__":

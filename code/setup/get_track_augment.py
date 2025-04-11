@@ -34,6 +34,9 @@ def get_track_speeds(event, mode='Q'):
     '''
     # get the session desired
     try:
+        print("Fetching\n\tyear = {}\n\tevent-name = {}".format(
+            event['year'].item(), event['name'].item())
+        )
         session = fastf1.get_session(event['year'].item(), event['name'].item(), mode)
         session.load()
     except:

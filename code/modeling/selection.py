@@ -60,6 +60,7 @@ def get_features(data:pd.DataFrame, features=[], select=False, debug=False):
     if len(features) == 0: features = ['driverId', 'constructorId']
     encoder = OneHotEncoder()
     one_hot = encoder.fit_transform(data[features])
+    if debug: print("[DEBUG]:",one_hot.shape)
     # if debug: print("[DEBUG]: one_hot data = {}".format(one_hot))
     feature_names = encoder.get_feature_names_out()
     df_features = pd.DataFrame(one_hot.toarray(), columns=feature_names)
@@ -73,24 +74,42 @@ def get_features(data:pd.DataFrame, features=[], select=False, debug=False):
 
     return df_study
 
-def get_encoded_data(dat:pd.DataFrame):
+def get_encoded_data(dat:pd.DataFrame, cycles=False, driver_vars=None, construct_vars=None):
     # we need lists of these variables so we can create interactions between the encoded
     # categoricals and the other variables of interest
-    driver_vars = ['driverId_{}'.format(id) for id in dat['driverId'].unique()] 
-    construct_vars = ['constructorId_{}'.format(id) for id in dat['constructorId'].unique()]
-    cycle_vars = ['cycle_{}'.format(id) for id in dat['cycle'].unique()]
+    if driver_vars is None:
+        driver_vars = ['driverId_{}'.format(id) for id in dat['driverId'].unique()] 
+    if construct_vars is None:
+        construct_vars = ['constructorId_{}'.format(id) for id in dat['constructorId'].unique()]
 
+    if cycles != False:
+        cycle_vars = ['cycle_{}'.format(id) for id in dat['cycle'].unique()]
+    else:
+        cycle_vars = None
     # test track characteristics - corner_spd_mean, num_fast_corners, num_slow_corners, strt_len_max
     # test all constructors
     # test regulation types - engine_reg, aero_reg, years_since_major_cycle
     #       engine_reg * years_since_major_cycle + engine_reg
     #       aero_reg * years_since_major_cycle + aero_reg
-    encoded_dat = get_features(dat, ['constructorId','driverId', 'cycle'], select=False)
+    encoded_dat = get_features(dat, ['constructorId','driverId'], select=False, debug=False)
+    
+    # check for missing driver and constructor Ids
+    for driver in driver_vars:
+        if driver not in encoded_dat.keys():
+            encoded_dat[driver] = 0.0
+    for constructor in construct_vars:
+        if constructor not in encoded_dat.keys():
+            encoded_dat[constructor]= 0.0
+    
+    # encoded dat may include encodings for drivers who did not participate in certain races 
+    # this is fine - just drop these
     return driver_vars, construct_vars, cycle_vars, encoded_dat
 
 def add_interaction(
     data, vars=[], drivers=[], constructors=[],
-    ret_term_names=False
+    ret_term_names=False,
+    print_debug=False,
+    debug=True
 ):
     '''
     Args:
@@ -118,16 +137,20 @@ def add_interaction(
     for i in range(len(drivers)):
         # skip max verstappen and red bull
         # if drivers[i] == "driverId_830": continue
-        print("\t[INFO]: drivers[i] = {}".format(drivers[i]))
-        for j in range(i,len(constructors)):
+        # print("\t[INFO]: drivers[i] = {}".format(drivers[i]))
+        for j in range(len(constructors)):
             # skip red bull
             # if constructors[j] == "constructorId_9": continue
             # set the initial value for the array
             interact = data[vars[0]].copy()
-
+            
+            if debug and print_debug==True:
+                print("[DEBUG]: default df - just raw var[0] = \n{}".format(interact))
+                print("[DEBUG]: driver encoding = \n{}".format(data[drivers[i]]))
             v_string = ""
             # handle using driver as an interaction
             if drivers[i] != "any_driver":
+                # print("[DEBUG]: {} * {}".format(data[drivers[i]].unique()[0], data[vars[0]].unique()[0]))
                 interact *= data[drivers[i]].copy()
                 drive_val = drivers[i]
                 v_string += f'{drive_val}-'
@@ -137,16 +160,29 @@ def add_interaction(
                 interact *= data[constructors[j]].copy()
                 construct_val = constructors[j]
                 v_string += f'{construct_val}-'
+                
+            if print_debug:
+                print("[DEBUG]: interact df = {}".format(interact))
             
+            # one variable at a time please
             v_string += vars[0]
-            for k in range(1, len(vars)):
-                # print('loop executes?')
-                interact *= data[vars[k]].copy()
-                v_string += "-{}".format(vars[k])
+            # interact *= data[vars[0]].copy()
+            # for k in range(len(vars)):
+            #     # print('loop executes?')
+            #     interact *= data[vars[k]].copy()
+            #     v_string += "-{}".format(vars[k])
             
             df = pd.DataFrame({
                 v_string: interact
             })
+            
+            if print_debug:
+                print("[DEBUG]: normal df = {}".format(data[vars[0]]))
+                print("[DEBUG]: interaction df = {}".format(df))
+            
+            if debug:
+                exit()
+            
             interaction_features.append(v_string)
             data2 = pd.concat([data2, df], axis=1)
             # # add interaction to the dataframe
