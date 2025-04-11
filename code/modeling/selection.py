@@ -88,7 +88,10 @@ def get_encoded_data(dat:pd.DataFrame):
     encoded_dat = get_features(dat, ['constructorId','driverId', 'cycle'], select=False)
     return driver_vars, construct_vars, cycle_vars, encoded_dat
 
-def add_interaction(data, vars=[], drivers=[], constructors=[]):
+def add_interaction(
+    data, vars=[], drivers=[], constructors=[],
+    ret_term_names=False
+):
     '''
     Args:
     - vars --------- list of the additional variables to include in 
@@ -110,9 +113,12 @@ def add_interaction(data, vars=[], drivers=[], constructors=[]):
 
     if len(drivers) == 0: drivers.append("any_driver")
     if len(constructors) == 0: constructors.append("any_constructor")
+    
+    interaction_features = []
     for i in range(len(drivers)):
         # skip max verstappen and red bull
         # if drivers[i] == "driverId_830": continue
+        print("\t[INFO]: drivers[i] = {}".format(drivers[i]))
         for j in range(i,len(constructors)):
             # skip red bull
             # if constructors[j] == "constructorId_9": continue
@@ -141,11 +147,15 @@ def add_interaction(data, vars=[], drivers=[], constructors=[]):
             df = pd.DataFrame({
                 v_string: interact
             })
+            interaction_features.append(v_string)
             data2 = pd.concat([data2, df], axis=1)
             # # add interaction to the dataframe
             # data[v_string] = interact
             # print(v_string)
-    return data2
+    if ret_term_names:
+        return data2, interaction_features
+    else:
+        return data2
 
 def add_podiums(n, data = None, year = 2021, round = 12):
     '''

@@ -3,16 +3,23 @@ from ISLP.models import (ModelSpec as MS, summarize)
 import statsmodels.api as sm
 from ISLP import confusion_table
 import numpy as np
+
+from imblearn.over_sampling import (
+    SMOTENC,
+    SMOTE
+)
 from sklearn.metrics import f1_score
 from sklearn.linear_model import LassoCV
+from sklearn.preprocessing import StandardScaler
+
 from tqdm import tqdm
 
 # local imports
 try:
-    from param_train import (
-        logistic_fit, 
-        xgb_fit
-    )
+    # from param_train import (
+    #     logistic_fit, 
+    #     xgb_fit
+    # )
     from selection import (
         get_data_in_window, 
         get_features, 
@@ -22,10 +29,10 @@ try:
     )
     from mod_point_distrib import std_pt_distrib
 except: # import as module
-    from .param_train import (
-        logistic_fit,
-        xgb_fit
-    )
+    # from .param_train import (
+    #     logistic_fit,
+    #     xgb_fit
+    # )
     from .selection import (
         get_data_in_window, 
         get_features, 
@@ -37,61 +44,155 @@ except: # import as module
 import warnings
 warnings.filterwarnings('ignore')
 
-def preprocess_data(
+def _fit_model(
     input_data,
-    non_cats,
+    main_vars,
+    response_var,
+    cat_features,
     ratio={
         0:1,
         1:1,
         2:1,
         3:1,
         4:3,
-        5:9
-    }
+        5:5
+    },
+    save_feature_coeffs=True,
+    dest_file='../../results/lasso_coeffs.csv'
 ):
     '''
     Args:
     - non_cats ------ list of variables that are not categorical
-      variables. 
+      variables and should be scaled.
     - ratio --------- dictionary of ratios for rounds 1 to n. 
       For example - the round number is given by x duplicates in 
       the data. This should set a much heavier weighting for the 
       most recent races.  
+    - exclude_vars -- variables to be excluded from model fitting
     '''
+    final_dat = None    
+    # before duplicating the data - apply standard scaling to all 
+    # of the numeric features
+    scaler = StandardScaler()
+    input_data[main_vars] = scaler.fit_transform(input_data[main_vars])
+    
     # get the sorted list of race_ids based on the date of the event?
     input_data = input_data.sort_values(
         by=['year', 'round'], ascending=[True,True]
     )
     # get the series of raceIds - should be sorted
     unique_ids = input_data['raceId'].unique()
-    for r_id in unique_ids:
-        for i in range(ratio):
-            
     
-def fit_window_model(
+    null_races = input_data.loc[input_data['raceId'].isnull()]
+    print("[INFO]: null_races = \n{}".format(null_races))
+    for i in range(len(unique_ids)):
+        for r in range(ratio[i]):
+            # duplicate data n times
+            duplicates = input_data.loc[input_data['raceId']==unique_ids[i]]
+            if final_dat is None:
+                final_dat = duplicates
+            else:
+                final_dat = pd.concat([final_dat, duplicates], ignore_index=True)
+        
+    # drop the unimportant features
+    y = input_data[response_var]
+    
+    # include categoricals and main features
+    full_vars = main_vars + cat_features
+    X = input_data[full_vars]
+    # X = input_data.drop(exclude_vars, axis=1)
+    
+    cat_indices = []
+    for col in X.keys():
+        if col in cat_features:
+            cat_indices.append(X.columns.get_loc(col))          
+    try:
+        oversample = SMOTENC(
+            categorical_features=cat_indices,
+            # k_neighbors=y.sum()-1, 
+            random_state=0
+        )
+        X, y = oversample.fit_resample(X, y)
+    except:
+        oversample = SMOTE(
+            k_neighbors=y.sum()-1
+        )
+        X, y = oversample.fit_resample(X, y)
+    
+    model = LassoCV(cv=5, random_state=42)
+    model.fit(X, y)
+    r2 = model.score(X, y)
+    
+    print("[INFO]: Model Training Fit R2 = {}".format(r2))
+    
+    model_coefficients = pd.DataFrame({
+        'Feature': X.columns, 
+        'Coefficient': model.coef_
+    })
+    if save_feature_coeffs: 
+        print("[INFO]: ---- saving lasso model coefficients ----")
+        model_coefficients.to_csv(dest_file, index=False)
+        
+    return model
+            
+def fit_eval_window_model(
+    main_features, # main features like prev points, etc.
+    vars, # variables to interact with driver / team
     year=2025,
     k=6,
-    round=3
-):
+    round=3,
+):    
+    '''
+    Enumerate list of features to be included for fitting in the model
+    '''
     # load the data and fetch the correct data window
     all_data = pd.read_csv("../../data/clean_model_data2.csv")
-    train_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
+    fit_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
+    
+    print("[INFO]: number of unique rounds = {}".format(fit_data['raceId'].unique()))
+    
+    # get standardized point distributions
+    fit_data, std_pt_features = std_pt_distrib(fit_data)
     
     # fit lasso models to get the right features
+    # no more podium prediction - just regress onto finishing position
+    drivers, constructors, _, data_window = get_encoded_data(fit_data)
+    d_interactions = []
+    c_interactions = []
     
-    # 1a. apply bootstrapping to get a weighted representation of the data
-    # 1b. apply SMOTE to the data to balance classes (podium v. non-podium)
-    # 1c. apply standardization (centering) so that LASSO works correctly
+    print("[DEBUG]: --- drivers --- \n{}".format(drivers))
+    print("[DEBUG]: --- constructors --- \n{}".format(constructors))
+    for var in vars: # add all interactions one-by-one
+        data_window, d_interact = add_interaction(
+            data_window, vars=[var], drivers=drivers, ret_term_names=True)
+        data_window, c_interact = add_interaction(
+            data_window, vars=[var], constructors=constructors, ret_term_names=True)
+        
+        # print("[INFO]: d_interact = {}".format(d_interact))
+        # print("[INFO]: c_interact = {}".format(c_interact))
+        d_interactions += d_interact
+        c_interactions += c_interact
     
+    m_feats = main_features + d_interactions + c_interactions + std_pt_features
+    print("[INFO]: ---- main features ---- \n{}".format(m_feats))
+    if len(m_feats) > len(data_window):
+        print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(data_window)))
+        exit()
+    else:
+        print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(data_window)))
+        
+    model = _fit_model(
+        data_window,
+        main_vars = main_features + d_interact + c_interact + std_pt_features,
+        response_var='positionOrder',
+        cat_features= drivers + constructors
+    )
     # 2. evaluate over all drivers
-    
     # 3. evaluate over all constructors
-    
     # 4. generate (track) interactions over the significant drivers
-    
     # 5. generate (track) interactions over significant constructors
     
-    # 6. 
+    # make predictions for input race year=2025, round=3
 
 
 def models_by_window_2(
@@ -285,7 +386,7 @@ def models_by_window_2(
     # return results dataframe
     return results_df
 
-if __name__ == "__main__":
+def main1():
     cat_features = ['circuitId', 'driverId', 'constructorId']
     features = [
         # 'circuitId', 
@@ -353,3 +454,45 @@ if __name__ == "__main__":
         
         print(f"[INFO]: confidence interval = {results.mean()} +/- {dev}")
         print(f"[INFO]: explicit confidence interval = [{min_pt}, {max_pt}]")
+
+def main2():
+    '''
+    Some stuff
+    '''
+    main_features = [
+        # 'prev_driver_points',
+        'prev_driver_position',
+        'prev_driver_wins',
+        # 'prev_construct_points',
+        'prev_construct_position',
+        'prev_construct_wins',
+    ]
+    vars = [
+        'strt_len_mean',
+        'strt_len_q1',
+        'strt_len_median',
+        'strt_len_q3',
+        'strt_len_max',
+        'strt_len_min',
+        'str_len_std',
+        'avg_track_spd',
+        'max_track_spd',
+        'corner_spd_median',
+        'corner_spd_q3',
+        'corner_spd_max',
+        'corner_spd_min',
+        'num_slow_corners',
+        'num_fast_corners',
+        'num_corners',
+        'circuit_len'
+    ]
+    fit_eval_window_model(
+        main_features=main_features,
+        vars=vars,
+        k=6,
+        round=3,
+        year=2025
+    )
+    
+if __name__ == "__main__":
+    main2()
