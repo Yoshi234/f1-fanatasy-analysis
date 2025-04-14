@@ -105,6 +105,7 @@ def get_forecast_data(
     # to perform updating
     # print("[INFO]: round = {}".format(rnd))
     standings = get_standings_data(rnd, year, drivers_data)
+    print("[INFO]: standings.shape = {}".format(standings.shape))
     # print("[INFO]: standings.keys() = {}".format(standings.keys()))
     
     # 2 get 
@@ -126,6 +127,9 @@ def get_forecast_data(
             d_id_val = driver_x['driverId'].values[0]
         elif len(driver_x['driverRef'])==1:
             d_id_val = driver_x['driverId'].item()
+        else:
+            print("[ERROR]: Missing {} from Drivers data".format(driver))
+            print("[INFO]: Unique drivers = {}".format(base['DriverId'].unique()))
         base.loc[base['DriverId']==driver, 'driverId']=d_id_val
     
     # get constructor Ids for eachh constructor and team id
@@ -183,10 +187,10 @@ def _fit_model(
     ratio={
         0:1,
         1:1,
-        2:1,
-        3:2,
-        4:4,
-        5:6
+        2:2,
+        3:3,
+        4:5,
+        5:8
     },
     save_feature_coeffs=True,
     dest_file='../../results/lasso_coeffs.csv'
@@ -303,7 +307,8 @@ def fit_eval_window_model(
     start_data="../../data/clean_model_data2.csv",
     drivers_data="../../data/drivers.csv",
     dest_file="../../results/lasso_coeffs.csv",
-    constructors_data="../../data/constructors.csv"
+    constructors_data="../../data/constructors.csv",
+    pred_round=None
 ):    
     '''
     Enumerate list of features to be included for fitting in the model
@@ -385,8 +390,11 @@ def fit_eval_window_model(
     # 5. generate (track) interactions over significant constructors
     
     # make predictions for input race year=2025, round=3
+    if pred_round == None:
+        pred_round = round+1
+    
     X2 = get_forecast_data(
-        round+1, drivers_data=drivers_data, year=year, constructors_data=constructors_data,
+        pred_round, drivers_data=drivers_data, year=year, constructors_data=constructors_data,
         main_features=main_features, vars=vars, fitted_drivers=drivers, fitted_constructors=constructors,
         full_vars=m_feats + drivers + constructors
     )
@@ -414,7 +422,8 @@ def fit_eval_window_model(
         preds.loc[idx, 'fantasy_pts'] += dq_scores[pred['sp']]
         preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
     
-    print(preds.sort_values(by='positionOrder'))
+    preds = preds.sort_values(by='fp')
+    print(preds)
     preds.to_csv(predictions, index=False)
     
     
@@ -725,15 +734,16 @@ def main2():
     fit_eval_window_model(
         main_features=main_features,
         vars=vars,
-        k=5,
-        round=3,
+        k=4,
+        round=4,
         year=2025,
         target=['grid','positionOrder'],
-        predictions="../results/bahrain_predictions.csv",
+        predictions="../results/saudi-arabia_predictions.csv",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
-        constructors_data=constructors_data
+        constructors_data=constructors_data,
+        pred_round=5
     )
     
 if __name__ == "__main__":
