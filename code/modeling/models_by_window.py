@@ -516,14 +516,36 @@ def fit_eval_window_model(
     preds.to_csv(f"{predictions_folder}/predictions.csv", index=False)
     
     if std_errors == True:
+        color_dict = {
+            "PIA": "#FF8000",
+            "NOR": "#FF8000", 
+            "RUS": "#27F4D2",
+            "ANT": "#27F4D2",
+            "LEC": "#E80020", 
+            "HAM": "#E80020",
+            "VER": "#3671C6", 
+            "TSU": "#3671C6", 
+            "HAD": "#6692FF",
+            "LAW": "#6692FF", 
+            "STR": "#229971", 
+            "ALO": "#229971", 
+            "GAS": "#0093CC", 
+            "DOO": "#0093CC", 
+            "ALB": "#64C4FF", 
+            "SAI": "#64C4FF", 
+            "BEA": "#B6BABD",
+            "OCO": "#B6BABD",
+            "BOR": "#52E252", 
+            "HUL": "#52E252"
+        }
         # plot qualifying results
         plt.clf()
         plt.figure(figsize=(12,6))
-        plt.errorbar(
-            preds['Driver'], preds['grid'], 
-            yerr=1.96*preds['std_err_q'], 
-            fmt='o', capsize=5
-        )
+        for driver in preds['Driver'].unique(): 
+            tmp = preds.loc[preds['Driver']==driver]
+            plt.errorbar(driver, tmp['grid'].item(),
+                         yerr=1.96*tmp['std_err_q'].item(), 
+                         fmt='o', capsize=3, color=color_dict[driver])
         plt.xlabel("Driver")
         plt.ylabel("Expected Qualifying Position")
         plt.title("Qualifying Position by Driver with Deviations")
@@ -534,11 +556,11 @@ def fit_eval_window_model(
         # plot race results
         plt.clf()
         plt.figure(figsize=(12,6))
-        plt.errorbar(
-            preds['Driver'], preds['positionOrder'],
-            yerr=1.96*preds['std_err_r'],
-            fmt='o', capsize=5
-        )
+        for driver in preds['Driver'].unique(): 
+            tmp = preds.loc[preds['Driver']==driver]
+            plt.errorbar(driver, tmp['positionOrder'].item(),
+                         yerr=1.96*tmp['std_err_r'].item(), 
+                         fmt='o', capsize=5, color=color_dict[driver])
         plt.xlabel("Driver")
         plt.ylabel("Expected Race Results")
         plt.title("Race Finishing Position by Driver with Deviations")
@@ -865,7 +887,7 @@ def main2():
         constructors_data=constructors_data,
         pred_round=5,
         std_errors=True,
-        boot_trials=3
+        boot_trials=1000
     )
     
 if __name__ == "__main__":
