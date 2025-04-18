@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt 
 from ISLP.models import (ModelSpec as MS, summarize)
 import statsmodels.api as sm
 from ISLP import confusion_table
@@ -105,7 +106,7 @@ def get_forecast_data(
     # to perform updating
     # print("[INFO]: round = {}".format(rnd))
     standings = get_standings_data(rnd, year, drivers_data)
-    print("[INFO]: standings.shape = {}".format(standings.shape))
+    # print("[INFO]: standings.shape = {}".format(standings.shape))
     # print("[INFO]: standings.keys() = {}".format(standings.keys()))
     
     # 2 get 
@@ -133,6 +134,8 @@ def get_forecast_data(
         base.loc[base['DriverId']==driver, 'driverId']=d_id_val
     
     # get constructor Ids for eachh constructor and team id
+    # print("--- Unique TeamId Values ---")
+    # print(base['TeamId'].unique())
     for constructor in base['TeamId'].unique():
         construct_x = constructors.loc[constructors['constructorRef']==constructor]
         if len(construct_x['constructorRef']) == 1:
@@ -154,9 +157,11 @@ def get_forecast_data(
     
     # standardize the points distribution
     fit_data, std_pt_features = std_pt_distrib(base)
+    # print(fit_data.loc[fit_data['constructorId']==215, ['driverId', 'constructorId']])
     
     # set the data encodings
-    print(fitted_drivers)
+    # print(fitted_constructors)
+    # print(fitted_drivers)
     _, _, _, data_window = get_encoded_data(
         fit_data, driver_vars=fitted_drivers, construct_vars=fitted_constructors)
     d_interactions = []
@@ -193,6 +198,7 @@ def _fit_model(
         5:8
     },
     save_feature_coeffs=True,
+    resample_data=False,
     dest_file='../../results/lasso_coeffs.csv'
 ):
     '''
@@ -247,6 +253,10 @@ def _fit_model(
     #     print("---")
         
     final_dat = final_dat[all_vars].dropna() # drop null rows
+    
+    # resample the data for model fitting
+    if resample_data==True:
+        final_dat = final_dat.sample(n=len(final_dat), replace=True)
     # count number of rows for each unique race id
     
     # for r_id in final_dat['raceId'].unique():
@@ -284,17 +294,18 @@ def _fit_model(
     model.fit(X, y)
     r2 = model.score(X, y)
     
-    print("[INFO]: Model Training Fit R2 = {}".format(r2))
+    if not resample_data: print("[INFO]: Model Training Fit R2 = {}".format(r2))
     
     model_coefficients = pd.DataFrame({
         'Feature': X.columns, 
         'Coefficient': model.coef_
     })
-    if save_feature_coeffs: 
+    if save_feature_coeffs and not resample_data: 
         print("[INFO]: ---- saving lasso model coefficients ----")
         model_coefficients.to_csv(dest_file, index=False)
         
     return model
+
             
 def fit_eval_window_model(
     main_features, # main features like prev points, etc.
@@ -303,20 +314,27 @@ def fit_eval_window_model(
     k=6,
     round=3,
     target='positionOrder',
-    predictions="../../results/predictions.csv",
+    predictions_folder="../../results",
     start_data="../../data/clean_model_data2.csv",
     drivers_data="../../data/drivers.csv",
     dest_file="../../results/lasso_coeffs.csv",
     constructors_data="../../data/constructors.csv",
-    pred_round=None
+    pred_round=None,
+    boot_trials=1000,
+    std_errors=True
 ):    
     '''
     Enumerate list of features to be included for fitting in the model
     '''
     # load the data and fetch the correct data window
     drivers_db = pd.read_csv(drivers_data)
+    constructors_db = pd.read_csv(constructors_data)
     all_data = pd.read_csv(start_data)
     fit_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
+    # keys = ['TeamI]
+    # print(fit_data.loc[fit_data['constructorId']==215, ['driverId', 'constructorId']])
+    # print(fit_data.keys())
+    # exit()
     
     # print("[INFO]: number of unique rounds = {}".format(fit_data['raceId'].unique()))
     
@@ -364,32 +382,12 @@ def fit_eval_window_model(
     
     m_feats = main_features + d_interactions + c_interactions + std_pt_features
     # print("[INFO]: ---- main features ---- \n{}".format(m_feats))
-    if len(m_feats) > len(fit_data):
-        print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(fit_data)))
-        exit()
-    else:
-        print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(fit_data)))
-        
-    model1 = _fit_model(
-        data_window,
-        main_vars = m_feats,
-        response_var=target[0],
-        cat_features= drivers + constructors,
-        dest_file=dest_file
-    )
-    model2 = _fit_model(
-        data_window,
-        main_vars = m_feats,
-        response_var=target[1],
-        cat_features= drivers + constructors,
-        dest_file=dest_file
-    )
-    # 2. evaluate over all drivers
-    # 3. evaluate over all constructors
-    # 4. generate (track) interactions over the significant drivers
-    # 5. generate (track) interactions over significant constructors
-    
-    # make predictions for input race year=2025, round=3
+    # if len(m_feats) > len(fit_data):
+    #     print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(fit_data)))
+    #     exit()
+    # else:
+    # print(constructors)
+    # print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(fit_data)))
     if pred_round == None:
         pred_round = round+1
     
@@ -397,6 +395,86 @@ def fit_eval_window_model(
         pred_round, drivers_data=drivers_data, year=year, constructors_data=constructors_data,
         main_features=main_features, vars=vars, fitted_drivers=drivers, fitted_constructors=constructors,
         full_vars=m_feats + drivers + constructors
+    )
+    base_results = X2.copy()
+
+    ## PROCEDURE
+    #  1. iterate over n trials (n=1000) 
+    #  2. at each trial, resample the training data and fit a model
+    #  3. make predictions over the forecast data and save for each driver
+    #  4. compute standard deviation over n predictions - set as the standard error of predictions
+    #  5. make predictions over the normal fit data and plot the confidence intervals
+    
+    # TODO finish bootstrapping the standard errors of predictions for a lasso regression model
+    if std_errors == True:
+        q_results = pd.DataFrame({key:[] for key in drivers})
+        r_results = pd.DataFrame({key:[] for key in drivers})
+        for i in tqdm(range(boot_trials), ncols=100,
+                  desc='processing trials', dynamic_ncols=True, leave=True):
+            model1 = _fit_model(
+                data_window,
+                main_vars = m_feats,
+                response_var=target[0],
+                cat_features= drivers + constructors,
+                save_feature_coeffs=False,
+                resample_data=True,
+                dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
+            )
+            model2 = _fit_model(
+                data_window,
+                main_vars = m_feats,
+                response_var=target[1],
+                cat_features= drivers + constructors,
+                save_feature_coeffs=False,
+                resample_data=True,
+                dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
+            )
+            y1 = model1.predict(X2)
+            y2 = model2.predict(X2)
+            
+            # set results
+            base_results[target[0]] = y1
+            base_results[target[1]] = y2
+            
+            # retrieve results from data frame
+            r_res_dict = dict()
+            q_res_dict = dict()
+            
+            for d in drivers:
+                tmp = base_results.loc[base_results[d]==1]
+                # set results in a list format
+                r_res_dict[d] = [tmp[target[1]].values[0]]
+                q_res_dict[d] = [tmp[target[0]].values[0]]
+            
+            r_df_tmp = pd.DataFrame(r_res_dict)
+            q_df_tmp = pd.DataFrame(q_res_dict)
+            
+            r_results = pd.concat([r_results, r_df_tmp], axis=0).reset_index(drop=True)
+            q_results = pd.concat([q_results, q_df_tmp], axis=0).reset_index(drop=True)
+                 
+    # 2. evaluate over all drivers
+    # 3. evaluate over all constructors
+    # 4. generate (track) interactions over the significant drivers
+    # 5. generate (track) interactions over significant constructors
+    
+    # make predictions for input race year=2025, round=3
+    model1 = _fit_model(
+        data_window,
+        main_vars = m_feats,
+        response_var=target[0],
+        cat_features= drivers + constructors,
+        save_feature_coeffs=True,
+        resample_data=False,
+        dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
+    )
+    model2 = _fit_model(
+        data_window,
+        main_vars = m_feats,
+        response_var=target[1],
+        cat_features= drivers + constructors,
+        save_feature_coeffs=True,
+        resample_data=False,
+        dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
     )
     y1 = model1.predict(X2)
     y2 = model2.predict(X2)
@@ -407,12 +485,23 @@ def fit_eval_window_model(
     print("--- {} Predictions for Round {} of {} ---".format(target, round+1, year))
     
     X2['Driver'] = np.nan
+    X2['Constructor']=np.nan
     for d in drivers:
         id_val = float(d.split("_")[-1])
-        driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'fullname'].values[0]
-        X2.loc[X2[d]==1.0, 'Driver']=driver_name
+        driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'code'].values[0]
+        q_std_err = q_results[d].std()
+        r_std_err = r_results[d].std()
+        X2.loc[X2[d]==1.0, ['Driver', 'std_err_q', 'std_err_r']] = [driver_name, q_std_err, r_std_err]
+    for c in constructors:
+        id_val = float(c.split("_")[-1])
+        # print("id_val",id_val)
+        constructor_name = constructors_db.loc[constructors_db['constructorId']==id_val, 'constructorRef'].values[0]
+        # print("constructor",constructor_name)
+        
+        X2.loc[X2[c]==1.0, 'Constructor']=constructor_name
+        # print(X2.loc[X2[c]==1.0, ['Driver', 'Constructor']])
     
-    preds = X2[['Driver', target[0], target[1]]]
+    preds = X2[['Driver', 'Constructor', target[0], 'std_err_q', target[1], 'std_err_r']]
     preds['sp'] = preds['grid'].rank()
     preds['fp'] = preds['positionOrder'].rank()
     preds['position_change'] = preds['sp'] - preds['fp']
@@ -424,11 +513,40 @@ def fit_eval_window_model(
     
     preds = preds.sort_values(by='fp')
     print(preds)
-    preds.to_csv(predictions, index=False)
+    preds.to_csv(f"{predictions_folder}/predictions.csv", index=False)
+    
+    if std_errors == True:
+        # plot qualifying results
+        plt.clf()
+        plt.figure(figsize=(12,6))
+        plt.errorbar(
+            preds['Driver'], preds['grid'], 
+            yerr=1.96*preds['std_err_q'], 
+            fmt='o', capsize=5
+        )
+        plt.xlabel("Driver")
+        plt.ylabel("Expected Qualifying Position")
+        plt.title("Qualifying Position by Driver with Deviations")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(f"{predictions_folder}/quali_plot.jpg")
+        
+        # plot race results
+        plt.clf()
+        plt.figure(figsize=(12,6))
+        plt.errorbar(
+            preds['Driver'], preds['positionOrder'],
+            yerr=1.96*preds['std_err_r'],
+            fmt='o', capsize=5
+        )
+        plt.xlabel("Driver")
+        plt.ylabel("Expected Race Results")
+        plt.title("Race Finishing Position by Driver with Deviations")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(f"{predictions_folder}/race_plot.jpg")
     
     
-
-
 def models_by_window_2(
     start_yr, 
     start_r, 
@@ -704,17 +822,17 @@ def main2():
     vars = [
         # 'strt_len_mean',
         # 'strt_len_q1',
-        # 'strt_len_median',
+        'strt_len_median',
         # 'strt_len_q3',
         # 'strt_len_max',
-        # 'strt_len_min',
+        'strt_len_min',
         # 'str_len_std',
         'avg_track_spd',
         # 'max_track_spd',
-        # 'corner_spd_median',
+        'corner_spd_median',
         # 'corner_spd_q3',
-        # 'corner_spd_max',
-        # 'corner_spd_min',
+        'corner_spd_max',
+        'corner_spd_min',
         'num_slow_corners',
         'num_fast_corners',
         # 'num_corners',
@@ -731,6 +849,8 @@ def main2():
         dest_file="../results/lasso_coeffs.csv"
         constructors_data="../data/constructors.csv"
         
+    # NOTE: code currently set up to run from main.py in 
+    # code. Do not run this file directly
     fit_eval_window_model(
         main_features=main_features,
         vars=vars,
@@ -738,13 +858,16 @@ def main2():
         round=4,
         year=2025,
         target=['grid','positionOrder'],
-        predictions="../results/saudi-arabia_predictions.csv",
+        predictions_folder="../results/saudi-arabia",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
         constructors_data=constructors_data,
-        pred_round=5
+        pred_round=5,
+        std_errors=True,
+        boot_trials=3
     )
     
 if __name__ == "__main__":
-    main2()
+    print("[ERROR]: DO NOT RUN MODULE DIRECTLY")
+    # main2()
