@@ -7,7 +7,7 @@ PIA,mclaren,31.0,23.4,driver,0.887,0.3,35
 SAI,williams,6.0,10.7,driver,1.0,-0.6,-4
 RUS,mercedes,27.3,22.0,driver,1.0,0.1,16
 ALO,aston_martin,4.5,6.4,driver,1.0,-0.6,-2
-DOO,alpine,6.33,5.6,driver,0.333,0.0,3
+DOO,alpine,6.33,5.6,driver,0.333,-0.2,3
 STR,aston_martin,10.5,9.7,driver,0.342,-0.6,2
 TSU,red_bull,11.0,16.4,driver,1.0,-0.6,4
 GAS,alpine,4.66,9.4,driver,1.0,-0.6,0

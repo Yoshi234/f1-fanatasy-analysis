@@ -188,6 +188,7 @@ def team_analysis(
             if row['asset'] in starting_team:
                 start_cost += row['price']
         check_price = start_cost + surplus
+        print("[INFO]: Max Team Budget = {}".format(check_price))
     
     # drop invalid team compositions
     full_df = full_df.loc[full_df['price'] <= check_price]
@@ -242,10 +243,10 @@ def team_analysis(
 
 if __name__ == "__main__":
     cur_team = frozenset(['PIA', 'BEA', 'DOO', 'BOR', 'HAD', 'MCL', 'MER'])
-    get_scores(
-        predictions_file="../results/saudi-arabia_predictions.csv", 
-        values_file="../results/saudi-arabia/josh_fantasytools_assets.csv"
-    )
+    # get_scores(
+    #     predictions_file="../results/saudi-arabia_predictions.csv", 
+    #     values_file="../results/saudi-arabia/josh_fantasytools_assets.csv"
+    # )
     team_analysis(
         values_table = "../results/saudi-arabia/josh_fantasytools_assets.csv", 
         output = "../results/saudi-arabia/josh_fantasytools_results2.csv", 

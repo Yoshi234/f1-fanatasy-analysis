@@ -887,7 +887,7 @@ def main2():
         constructors_data=constructors_data,
         pred_round=5,
         std_errors=True,
-        boot_trials=1000
+        boot_trials=100
     )
     
 if __name__ == "__main__":
