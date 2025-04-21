@@ -13,6 +13,20 @@ import fastf1
 
 def get_track_speeds(event, mode='Q'):
     '''
+    TODO: currently corner-speed cutoffs are hard-coded. 
+    Update these values to use dynamically encoded information instead.
+    Build a database of values for all tracks instead of just using 
+    hard-coded values. Maybe want to pivot to SQLite instead of a bunch 
+    of .csv files?
+    
+    TODO: add q1, q2, q3, and q4 corner-speed classes for the 
+    "num_fast_corners" and "num_slow_corners" counts. It seems 
+    that medium speed corners are also an important consideration, 
+    aside from just "slow corners". For example, HAAS seems to do 
+    better at slower-speed circuits, but in reality they are more of a
+    medium-speed circuit dominant car. Likewise, Williams seems stronger
+    at higher-speed tracks (similar to the racing bull car).
+    
     Uses the fastest qualifying lap from a given event to obtain 
     summary information about the speeds of the track, specifically
     in regards to the cornering speeds and straight lengths of the 

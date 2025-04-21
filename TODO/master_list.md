@@ -1,3 +1,34 @@
+## 4/21/2025
+
+1. currently corner-speed cutoffs are hard-coded. 
+Update these values to use dynamically encoded information instead.
+Build a database of values for all tracks instead of just using 
+hard-coded values. Maybe want to pivot to SQLite instead of a bunch 
+of .csv files?
+
+TODO: add q1, q2, q3, and q4 corner-speed classes for the 
+"num_fast_corners" and "num_slow_corners" counts. It seems 
+that medium speed corners are also an important consideration, 
+aside from just "slow corners". For example, HAAS seems to do 
+better at slower-speed circuits, but in reality they are more of a
+medium-speed circuit dominant car. Likewise, Williams seems stronger
+at higher-speed tracks (similar to the racing bull car).
+
+2. update mechanism for pushing predictions to the website hosted 
+   via github
+
+3. Add feature importance visualization, and driver performance 
+   profiles based on coefficient weightings for track feature 
+   interactions
+
+4. Think about developing a weighting mechanism which accounts for 
+   DNFs with more nuance - for example, instead of duplicating results
+   from a given race at the same weight as every other driver, 
+   if a DNF occurs, downweight that performance to a half or quarter 
+   rate relative to the standardized weighting. Of course, if the number
+   of samples for a given race is 1, then no weighting should be applied. 
+   This shouldn't be the case for more important races though. 
+
 ## 4/02/2025
 
 + come up with a method to measure performance characteristics

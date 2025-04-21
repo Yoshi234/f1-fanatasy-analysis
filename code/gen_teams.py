@@ -242,16 +242,16 @@ def team_analysis(
 
 
 if __name__ == "__main__":
-    cur_team = frozenset(['PIA', 'BEA', 'DOO', 'BOR', 'HAD', 'MCL', 'MER'])
-    # get_scores(
-    #     predictions_file="../results/saudi-arabia_predictions.csv", 
-    #     values_file="../results/saudi-arabia/josh_fantasytools_assets.csv"
-    # )
+    cur_team = frozenset(['PIA', 'BEA', 'DOO', 'OCO', 'HAD', 'MCL', 'HAA'])
+    get_scores(
+        predictions_file="../results/miami/predictions.csv", 
+        values_file="../results/miami/josh_fantasytools_assets.csv"
+    )
     team_analysis(
-        values_table = "../results/saudi-arabia/josh_fantasytools_assets.csv", 
-        output = "../results/saudi-arabia/josh_fantasytools_results2.csv", 
+        values_table = "../results/miami/josh_fantasytools_assets.csv", 
+        output = "../results/miami/josh_fantasytools_results1.csv", 
         weight=False,
         starting_team=cur_team,
-        surplus=0.4,
+        surplus=9.5,
         max_dif=3
     ) 

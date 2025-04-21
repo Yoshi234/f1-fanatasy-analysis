@@ -5,6 +5,7 @@ import statsmodels.api as sm
 from ISLP import confusion_table
 import numpy as np
 import fastf1
+import os
 
 from imblearn.over_sampling import (
     SMOTENC,
@@ -511,6 +512,9 @@ def fit_eval_window_model(
         preds.loc[idx, 'fantasy_pts'] += dq_scores[pred['sp']]
         preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
     
+    if not os.path.exists(predictions_folder): 
+        os.mkdir(predictions_folder)
+        
     preds = preds.sort_values(by='fp')
     print(preds)
     preds.to_csv(f"{predictions_folder}/predictions.csv", index=False)
@@ -876,16 +880,16 @@ def main2():
     fit_eval_window_model(
         main_features=main_features,
         vars=vars,
-        k=4,
-        round=4,
+        k=5,
+        round=6,
         year=2025,
         target=['grid','positionOrder'],
-        predictions_folder="../results/saudi-arabia",
+        predictions_folder="../results/miami",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
         constructors_data=constructors_data,
-        pred_round=5,
+        pred_round=6,
         std_errors=True,
         boot_trials=100
     )
