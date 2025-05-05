@@ -200,8 +200,8 @@ def team_analysis(
         full_df['centered_pred'] = (full_df['pred_score'] - full_df['pred_score'].mean())/(full_df['pred_score'].std())
         full_df['centered_score'] = (full_df['score'] - full_df['score'].mean())/(full_df['score'].std())
         full_df['centered_gain'] = (full_df['projected_gain'] - full_df['projected_gain'].mean())/(full_df['projected_gain'].std())
-        full_df['avg_value'] = 0.7 * full_df['centered_score'] + 0.3 * full_df['centered_gain']
-        full_df['pred_avg_value'] = 0.7 * full_df['centered_pred'] + 0.3*full_df['centered_gain']
+        full_df['avg_value'] = 0.4 * full_df['centered_score'] + 0.6 * full_df['centered_gain']
+        full_df['pred_avg_value'] = 0.4 * full_df['centered_pred'] + 0.6*full_df['centered_gain']
 
     full_df = full_df.sort_values(by='pred_avg_value', ascending=False)
     
@@ -242,16 +242,16 @@ def team_analysis(
 
 
 if __name__ == "__main__":
-    cur_team = frozenset(['PIA', 'BEA', 'DOO', 'OCO', 'HAD', 'MCL', 'HAA'])
+    cur_team = frozenset(['PIA', 'BEA', 'DOO', 'BOR', 'HAD', 'MCL', 'MER'])
     get_scores(
-        predictions_file="../results/miami/predictions.csv", 
-        values_file="../results/miami/josh_fantasytools_assets.csv"
+        predictions_file="../results/imola/predictions.csv", 
+        values_file="../results/imola/josh_fantasytools_assets.csv"
     )
     team_analysis(
-        values_table = "../results/miami/josh_fantasytools_assets.csv", 
-        output = "../results/miami/josh_fantasytools_results1.csv", 
+        values_table = "../results/imola/josh_fantasytools_assets.csv", 
+        output = "../results/imola/josh_fantasytools_results2.csv", 
         weight=False,
         starting_team=cur_team,
-        surplus=9.5,
+        surplus=0.4,
         max_dif=3
     ) 

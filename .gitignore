@@ -2,6 +2,7 @@
 **/__pycache__
 /data/
 /_site/
+/code/setup/__pycache__
 /code/setup/private.txt
 build.sh
 

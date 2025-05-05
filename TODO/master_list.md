@@ -1,3 +1,14 @@
+## 5/4/2025
+
+1. I discovered a very strange bug today. I loaded up the data from 
+   the Miami GP, and then it made predictions based on the same 
+   data set, but when I adjusted the values, predictions remained 
+   the same for round 7 based on rounds 1 - 6 (rounds 1 - 6). 
+   However, the miami data was invalid. When I opted to remove 
+   this data from the data set, things went back to normal, but 
+   I am very puzzled as to why. This is a potentially serious 
+   bug with my program and requires further investigation. 
+
 ## 4/21/2025
 
 1. currently corner-speed cutoffs are hard-coded. 

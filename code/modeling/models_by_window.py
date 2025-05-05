@@ -193,10 +193,10 @@ def _fit_model(
     ratio={
         0:1,
         1:1,
-        2:2,
-        3:3,
-        4:5,
-        5:8
+        2:1,
+        3:2,
+        4:2,
+        5:2
     },
     save_feature_coeffs=True,
     resample_data=False,
@@ -881,15 +881,15 @@ def main2():
         main_features=main_features,
         vars=vars,
         k=5,
-        round=6,
+        round=7,
         year=2025,
         target=['grid','positionOrder'],
-        predictions_folder="../results/miami",
+        predictions_folder="../results/imola",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
         constructors_data=constructors_data,
-        pred_round=6,
+        pred_round=7,
         std_errors=True,
         boot_trials=100
     )

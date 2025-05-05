@@ -253,6 +253,10 @@ def fetch_new(
         s1 = fastf1.get_session(curr_yr, record['RoundNumber'], 'R')
         s1.load(telemetry=False, weather=False)
         base = s1.results
+
+        if base['DriverId'].nunique() < base.shape[0]:
+            print("[ERROR]: Data not available for round {}".format(record['RoundNumber']))
+            exit()
         
         if debug: 
             print("{}[INFO]: base.keys = \n{}{}".format(Colors.YELLOW, base.keys(), Colors.ENDC))

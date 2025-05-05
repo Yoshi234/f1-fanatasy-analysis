@@ -1,0 +1,65 @@
+[INFO]: generating team combinations = 0.9666290283203125 s
+[INFO]: Max Team Budget = 104.6
+-------------------- Best Predicted Average Value --------------------
+team_comps:		frozenset({'STR', 'HAD', 'ALB', 'BOR', 'PIA', 'WIL', 'MCL'})
+price:		104.2
+score:		190.8688
+max_score:		32.4
+projected_gain:		1.6
+pred_score:		114.0
+weight:		0.887
+ensemble_score:		152.43439999999998
+centered_pred:		3.0813952799082225
+centered_score:		1.744558895695162
+centered_gain:		2.8407382257764344
+avg_value:		2.4022664937439253
+pred_avg_value:		2.93700104742915
+team_diffs:		3
+
+-------------------- Best Predicted Score Value --------------------
+team_comps:		frozenset({'HAD', 'BEA', 'BOR', 'PIA', 'ALO', 'MCL', 'MER'})
+price:		104.6
+score:		242.53879999999998
+max_score:		32.4
+projected_gain:		-0.2999999999999999
+pred_score:		132.0
+weight:		0.887
+ensemble_score:		187.2694
+centered_pred:		3.922672189738461
+centered_score:		3.4203996068857996
+centered_gain:		0.6303193011641396
+avg_value:		1.7463514234528037
+pred_avg_value:		1.947260456593868
+team_diffs:		3
+
+-------------------- Best Avg Fantasy Value --------------------
+team_comps:		frozenset({'STR', 'HAD', 'ALB', 'PIA', 'WIL', 'DOO', 'MCL'})
+price:		104.2
+score:		192.8688
+max_score:		32.4
+projected_gain:		1.6
+pred_score:		112.0
+weight:		0.887
+ensemble_score:		152.43439999999998
+centered_pred:		2.9879200677048625
+centered_score:		1.8094259640594212
+centered_gain:		2.8407382257764344
+avg_value:		2.428213321089629
+pred_avg_value:		2.899610962547806
+team_diffs:		3
+
+-------------------- Best Avg Fantasy Score --------------------
+team_comps:		frozenset({'HAD', 'BEA', 'PIA', 'DOO', 'ALO', 'MCL', 'MER'})
+price:		104.6
+score:		244.53879999999998
+max_score:		32.4
+projected_gain:		-0.2999999999999999
+pred_score:		130.0
+weight:		0.887
+ensemble_score:		187.2694
+centered_pred:		3.829196977535101
+centered_score:		3.4852666752500587
+centered_gain:		0.6303193011641396
+avg_value:		1.7722982507985072
+pred_avg_value:		1.909870371712524
+team_diffs:		3
