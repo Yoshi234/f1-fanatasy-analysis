@@ -483,7 +483,7 @@ def fit_eval_window_model(
     X2[target[0]] = y1
     X2[target[1]] = y2
     
-    print("--- {} Predictions for Round {} of {} ---".format(target, round+1, year))
+    print("--- {} Predictions for Round {} of {} ---".format(target, pred_round, year))
     
     X2['Driver'] = np.nan
     X2['Constructor']=np.nan
@@ -884,14 +884,14 @@ def main2():
         round=7,
         year=2025,
         target=['grid','positionOrder'],
-        predictions_folder="../results/imola",
+        predictions_folder="../results/bahrain",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
         constructors_data=constructors_data,
-        pred_round=7,
+        pred_round=4,
         std_errors=True,
-        boot_trials=100
+        boot_trials=10
     )
     
 if __name__ == "__main__":
