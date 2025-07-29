@@ -242,16 +242,16 @@ def team_analysis(
 
 
 if __name__ == "__main__":
-    cur_team = frozenset(['PIA', 'BEA', 'DOO', 'BOR', 'HAD', 'MCL', 'MER'])
-    get_scores(
-        predictions_file="../results/imola/predictions.csv", 
-        values_file="../results/imola/josh_fantasytools_assets.csv"
-    )
+    cur_team = frozenset(['BOR', 'HAD', 'LAW', 'PIA', 'ALO', 'MCL', 'FER'])
+    # get_scores(
+    #     predictions_file="../results/imola/predictions.csv", 
+    #     values_file="../results/imola/josh_fantasytools_assets.csv"
+    # )
     team_analysis(
-        values_table = "../results/imola/josh_fantasytools_assets.csv", 
-        output = "../results/imola/josh_fantasytools_results2.csv", 
+        values_table = "../results/belgium/josh_fantasytools_assets.csv", 
+        output = "../results/belgium/josh_fantasytools_results1.csv", 
         weight=False,
         starting_team=cur_team,
-        surplus=0.4,
-        max_dif=3
+        surplus=0.1,
+        max_dif=2
     ) 

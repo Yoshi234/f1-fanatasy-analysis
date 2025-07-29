@@ -1,0 +1,65 @@
+[INFO]: generating team combinations = 1.6589298248291016 s
+[INFO]: Max Team Budget = 114.1
+-------------------- Best Predicted Average Value --------------------
+team_comps:		frozenset({'PIA', 'HUL', 'MCL', 'ALO', 'STR', 'KCK', 'BEA'})
+price:		98.19999999999999
+score:		213.4258
+max_score:		33.4
+projected_gain:		2.6999999999999997
+pred_score:		98.0
+weight:		0.887
+ensemble_score:		155.7129
+centered_pred:		1.423575889072294
+centered_score:		2.3053976134595633
+centered_gain:		2.8224174044254795
+avg_value:		2.615609488039113
+pred_avg_value:		2.2628807982842054
+team_diffs:		2
+
+-------------------- Best Predicted Score Value --------------------
+team_comps:		frozenset({'PIA', 'RUS', 'ALO', 'MCL', 'BEA', 'BOR', 'HAA'})
+price:		111.9
+score:		205.6258
+max_score:		33.4
+projected_gain:		1.4900000000000002
+pred_score:		134.0
+weight:		0.887
+ensemble_score:		169.8129
+centered_pred:		2.111601680754102
+centered_score:		2.1704574493773063
+centered_gain:		1.4479354745308963
+avg_value:		1.7369442644694604
+pred_avg_value:		1.7134019570201784
+team_diffs:		2
+
+-------------------- Best Avg Fantasy Value --------------------
+team_comps:		frozenset({'PIA', 'HUL', 'MCL', 'ALO', 'STR', 'KCK', 'BEA'})
+price:		98.19999999999999
+score:		213.4258
+max_score:		33.4
+projected_gain:		2.6999999999999997
+pred_score:		98.0
+weight:		0.887
+ensemble_score:		155.7129
+centered_pred:		1.423575889072294
+centered_score:		2.3053976134595633
+centered_gain:		2.8224174044254795
+avg_value:		2.615609488039113
+pred_avg_value:		2.2628807982842054
+team_diffs:		2
+
+-------------------- Best Avg Fantasy Score --------------------
+team_comps:		frozenset({'PIA', 'HUL', 'FER', 'ALO', 'LAW', 'MCL', 'BOR'})
+price:		113.2
+score:		233.4258
+max_score:		33.4
+projected_gain:		1.5100000000000002
+pred_score:		127.0
+weight:		0.887
+ensemble_score:		180.2129
+centered_pred:		1.9778188879270835
+centered_score:		2.6513980341832983
+centered_gain:		1.4706541841159309
+avg_value:		1.9429517241428778
+pred_avg_value:		1.673520065640392
+team_diffs:		2
