@@ -193,6 +193,10 @@ def fetch_new(
     else:
         og_dat = pd.read_feather('../../data/clean_model_data.feather')
         print("[INFO]: Reading feather starter data")
+
+    # TODO 7/30/2025
+    # Update the `fetch_new` function so that it can run even without
+    # the availability of `clean_model_data2.csv`
     
     # get current datetime
     if current_date is None:
@@ -209,6 +213,7 @@ def fetch_new(
     else: 
         prev_round = None # set initially to None for standings and such
         p_r = 0
+
     print("[INFO]: starting round = {}".format(p_r))
     
     # schedule includes the round data - check against the most
@@ -222,7 +227,8 @@ def fetch_new(
     if schedule.shape[0] == 0: 
         return og_dat
 
-    res_id = og_dat['resultId'].max() + 1
+    # TODO Update logic - if no og_dat available - how to set?
+    res_id = og_dat['resultId'].max() + 1 
     r1_id = None
     full_dat = None
     # iterate over schedule and fill records for each race
@@ -276,6 +282,7 @@ def fetch_new(
         if test: 
             print("[INFO]: c1['alt'] = {}".format(c1['alt']))
             print("[INFO]: c1['circuitId'] = {}".format(c1['circuitId']))
+
         base['raceId'] = r1_id
         base['round'] = record['RoundNumber']
         base = base.rename(columns={'GridPosition':'grid',
@@ -287,6 +294,7 @@ def fetch_new(
         base['ref_name'] = s1.event.EventName
         base['event_name'] = s1.event.EventName
         
+        # 
         if 'circuitId' in c1.keys():
             if len(c1['circuitId']) == 1:
                 tmp_cid = c1['circuitId'].item() 

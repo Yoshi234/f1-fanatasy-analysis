@@ -113,6 +113,8 @@ def get_track_speeds(event, mode='Q'):
          "corner_spd_min": [speed_vals.min()],
          "num_slow_corners": [len(speed_vals[speed_vals < 136.86290322580646])],
          "num_fast_corners": [len(speed_vals[speed_vals > 235.9758064516129])],
+        #  "num_med_corners": [(len(speed_vals[speed_vals]) >= 136.86290322580646) &
+        #                      (len(speed_vals[speed_vals]) <= 235.9758064516129)]
          "num_corners": [len(speed_vals)],
          "circuit_len": [car_data['Distance'].max()]
         }
