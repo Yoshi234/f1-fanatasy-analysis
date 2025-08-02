@@ -7,10 +7,10 @@ import numpy as np
 import fastf1
 import os
 
-from imblearn.over_sampling import (
-    SMOTENC,
-    SMOTE
-)
+#from imblearn.over_sampling import (
+#    SMOTENC,
+#    SMOTE
+#)
 from sklearn.metrics import f1_score
 from sklearn.linear_model import LassoCV
 from sklearn.preprocessing import StandardScaler
@@ -430,6 +430,13 @@ def fit_eval_window_model(
                 resample_data=True,
                 dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
             )
+
+            #_x2 = X2.isna().sum()
+            #print(_x2[_x2 > 0])
+            #print(X2.loc[X2.isna().any(axis=1)][''])
+            X2['prev_driver_position'] = X2['prev_driver_position'].fillna(20)
+            X2 = X2.fillna(0)
+
             y1 = model1.predict(X2)
             y2 = model2.predict(X2)
             
@@ -459,6 +466,7 @@ def fit_eval_window_model(
     # 5. generate (track) interactions over significant constructors
     
     # make predictions for input race year=2025, round=3
+    print('ok 1')
     model1 = _fit_model(
         data_window,
         main_vars = m_feats,
@@ -468,6 +476,7 @@ def fit_eval_window_model(
         resample_data=False,
         dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
     )
+    print('ok 2')
     model2 = _fit_model(
         data_window,
         main_vars = m_feats,
@@ -503,8 +512,8 @@ def fit_eval_window_model(
         # print(X2.loc[X2[c]==1.0, ['Driver', 'Constructor']])
     
     preds = X2[['Driver', 'Constructor', target[0], 'std_err_q', target[1], 'std_err_r']]
-    preds['sp'] = preds['grid'].rank()
-    preds['fp'] = preds['positionOrder'].rank()
+    preds['sp'] = preds['grid'].rank(method='min').astype(int)
+    preds['fp'] = preds['positionOrder'].rank(method='min').astype(int)
     preds['position_change'] = preds['sp'] - preds['fp']
     
     preds['fantasy_pts'] = preds['position_change']*1
@@ -534,7 +543,8 @@ def fit_eval_window_model(
             "STR": "#229971", 
             "ALO": "#229971", 
             "GAS": "#0093CC", 
-            "DOO": "#0093CC", 
+            "DOO": "#0093CC",
+            "COL": "#0093CC",  
             "ALB": "#64C4FF", 
             "SAI": "#64C4FF", 
             "BEA": "#B6BABD",
@@ -881,17 +891,17 @@ def main2():
         main_features=main_features,
         vars=vars,
         k=5,
-        round=7,
+        round=14,
         year=2025,
         target=['grid','positionOrder'],
-        predictions_folder="../results/bahrain",
+        predictions_folder="../results/hungary",
         start_data=start_data,
         drivers_data=drivers_data,
         dest_file=dest_file,
         constructors_data=constructors_data,
-        pred_round=4,
+        pred_round=14,
         std_errors=True,
-        boot_trials=10
+        boot_trials=100
     )
     
 if __name__ == "__main__":
