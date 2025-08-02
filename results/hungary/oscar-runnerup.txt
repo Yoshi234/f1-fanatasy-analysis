@@ -1,0 +1,65 @@
+[INFO]: generating team combinations = 1.7004215717315674 s
+[INFO]: Max Team Budget = 117.7
+-------------------- Best Predicted Average Value --------------------
+team_comps:		frozenset({'AST', 'LAW', 'STR', 'HAM', 'PIA', 'MCL', 'HUL'})
+price:		117.00000000000001
+score:		223.9964
+max_score:		37.2
+projected_gain:		2.37
+pred_score:		143.0
+weight:		0.887
+ensemble_score:		183.4982
+centered_pred:		2.119132580217559
+centered_score:		2.199440072006273
+centered_gain:		2.9522293386664424
+avg_value:		2.6511136320023745
+pred_avg_value:		2.618990635286889
+team_diffs:		3
+
+-------------------- Best Predicted Score Value --------------------
+team_comps:		frozenset({'BEA', 'LAW', 'STR', 'PIA', 'GAS', 'MCL', 'FER'})
+price:		117.7
+score:		226.7964
+max_score:		37.2
+projected_gain:		0.99
+pred_score:		166.0
+weight:		0.887
+ensemble_score:		196.3982
+centered_pred:		2.5493805568952683
+centered_score:		2.246987960598569
+centered_gain:		1.361314221322939
+avg_value:		1.7155837170331911
+pred_avg_value:		1.8365407555518707
+team_diffs:		3
+
+-------------------- Best Avg Fantasy Value --------------------
+team_comps:		frozenset({'ALO', 'STR', 'HAM', 'PIA', 'KCK', 'MCL', 'HUL'})
+price:		117.39999999999999
+score:		247.59640000000002
+max_score:		37.2
+projected_gain:		2.38
+pred_score:		116.0
+weight:		0.887
+ensemble_score:		181.7982
+centered_pred:		1.614058868465465
+centered_score:		2.600200847284194
+centered_gain:		2.963757709081975
+avg_value:		2.8183349643628626
+pred_avg_value:		2.423878172835371
+team_diffs:		1
+
+-------------------- Best Avg Fantasy Score --------------------
+team_comps:		frozenset({'ALO', 'BOR', 'PIA', 'GAS', 'MCL', 'HUL', 'FER'})
+price:		116.6
+score:		255.19639999999998
+max_score:		37.2
+projected_gain:		0.8799999999999999
+pred_score:		130.0
+weight:		0.887
+ensemble_score:		192.5982
+centered_pred:		1.87594894122581
+centered_score:		2.7292594020347103
+centered_gain:		1.23450214675208
+avg_value:		1.8324050488651322
+pred_avg_value:		1.491080864541572
+team_diffs:		3

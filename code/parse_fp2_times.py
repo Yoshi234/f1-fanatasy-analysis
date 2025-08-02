@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+from modeling.models_by_window import dq_scores, dr_scores
 
 def get_ranks(input_file='', output_file=''):
     if input_file =='':
@@ -79,6 +80,31 @@ def main(fp2_file='', preds_file='', out_folder=''):
             f"{out_folder}/new_predictions.csv", index=False
     )
 
+def recalc_fantasy_score(old_preds, new_preds):
+    x = pd.read_csv(old_preds)
+    y = pd.read_csv(new_preds)
+
+    if 'new_fp_1' in x.keys():
+        x = x.drop(['new_fp_1', 'new_fp_2'], axis=1)
+
+    z = pd.merge(x, y[['Driver', 'new_fp_1', 'new_fp_2']], left_on='Driver', right_on='Driver', how='left')
+    
+    z['position_change_new'] = z['sp'] - z['new_fp_1']
+    # print(z)
+
+    z['fant_pts_new'] = z['position_change_new']
+    # print(z)
+    for idx, pred in z.iterrows():
+        # print('\t[INFO]: {} --> {} + {} + {}'.format(
+        #     pred['Driver'], dq_scores[pred['sp']], dr_scores[pred['new_fp_1']],
+        #     pred['position_change_new'])
+        # )
+        z.loc[idx, 'fant_pts_new'] += dq_scores[pred['sp']]
+        z.loc[idx, 'fant_pts_new'] += dr_scores[pred['new_fp_1']]
+        # print('\t\tFinal Score = {}'.format(z.loc[idx, 'fant_pts_new']))
+
+    z.to_csv(old_preds, index=False)
+
 if __name__ == "__main__":
     get_ranks(
             input_file='../results/hungary/hungary_fp2.csv', # raw pace file
@@ -88,4 +114,8 @@ if __name__ == "__main__":
             fp2_file='../results/hungary/fp2_ranks.csv', # fp2 rank file
             preds_file='../results/hungary/predictions.csv', # predictions file
             out_folder='../results/hungary' # folder to place new predictions in
+    )
+    recalc_fantasy_score(
+            old_preds='../results/hungary/predictions.csv',
+            new_preds='../results/hungary/new_predictions.csv'
     )

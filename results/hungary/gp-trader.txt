@@ -1,0 +1,65 @@
+[INFO]: generating team combinations = 7.126453161239624 s
+[INFO]: Max Team Budget = 111.9
+-------------------- Best Predicted Average Value --------------------
+team_comps:		frozenset({'PIA', 'AST', 'STR', 'ALO', 'MCL', 'HUL', 'LAW'})
+price:		100.2
+score:		212.7964
+max_score:		37.2
+projected_gain:		2.29
+pred_score:		124.0
+weight:		0.887
+ensemble_score:		168.3982
+centered_pred:		1.8902793020179174
+centered_score:		2.154663548873953
+centered_gain:		2.8783339484270156
+avg_value:		2.5888657886057906
+pred_avg_value:		2.4831120898633765
+team_diffs:		3
+
+-------------------- Best Predicted Score Value --------------------
+team_comps:		frozenset({'GAS', 'BEA', 'FER', 'BOR', 'MCL', 'LEC', 'LAW'})
+price:		111.2
+score:		196.8
+max_score:		20.2
+projected_gain:		-0.019999999999999907
+pred_score:		152.0
+weight:		1.0
+ensemble_score:		174.4
+centered_pred:		2.420934606721593
+centered_score:		1.8781508485321243
+centered_gain:		0.2287912723151759
+avg_value:		0.8885351028019552
+pred_avg_value:		1.1056486060777428
+team_diffs:		3
+
+-------------------- Best Avg Fantasy Value --------------------
+team_comps:		frozenset({'PIA', 'KCK', 'STR', 'ALO', 'MCL', 'HUL', 'LAW'})
+price:		98.2
+score:		223.19639999999998
+max_score:		37.2
+projected_gain:		2.21
+pred_score:		113.0
+weight:		0.887
+ensemble_score:		168.0982
+centered_pred:		1.681807575170045
+centered_score:		2.3344372531796096
+centered_gain:		2.7865748947088567
+avg_value:		2.6057198380971576
+pred_avg_value:		2.344667966893332
+team_diffs:		3
+
+-------------------- Best Avg Fantasy Score --------------------
+team_comps:		frozenset({'PIA', 'KCK', 'ALO', 'BOR', 'MCL', 'RUS', 'HUL'})
+price:		111.60000000000001
+score:		247.7964
+max_score:		37.2
+projected_gain:		1.43
+pred_score:		103.0
+weight:		0.887
+ensemble_score:		175.3982
+centered_pred:		1.4922878234901609
+centered_score:		2.7596712075949155
+centered_gain:		1.8919241209568067
+avg_value:		2.2390229556120502
+pred_avg_value:		1.7320696019701485
+team_diffs:		3

@@ -74,7 +74,8 @@ def check_in(set_val, item):
 
 def get_scores(
     predictions_file="../results/saudi-arabia_predictions.csv", 
-    values_file="../results/saudi-arabia/josh_fantasytools_assets.csv"
+    values_file="../results/saudi-arabia/josh_fantasytools_assets.csv",
+    score_field='fant_pts_new'
 ):
     '''
     Takes as input the predictions file with the pandas table of 
@@ -97,10 +98,10 @@ def get_scores(
     values = pd.read_csv(values_file)
     
     for driver in preds['Driver'].unique():
-        score = preds.loc[preds['Driver']==driver, 'fantasy_pts'].values[0]
+        score = preds.loc[preds['Driver']==driver, score_field].values[0]
         values.loc[values['asset']==driver, 'pred_score']= score
     for constructor in preds['Constructor'].unique():
-        score = preds.loc[preds['Constructor']==constructor, 'fantasy_pts'].sum()
+        score = preds.loc[preds['Constructor']==constructor, score_field].sum()
         values.loc[values['asset']==con_map[constructor], 'pred_score']=score
     
     values.to_csv(values_file, index=False)
@@ -242,16 +243,16 @@ def team_analysis(
 
 
 if __name__ == "__main__":
-    cur_team = frozenset(['BOR', 'HAD', 'LAW', 'PIA', 'ALO', 'MCL', 'FER'])
-    # get_scores(
-    #     predictions_file="../results/imola/predictions.csv", 
-    #     values_file="../results/imola/josh_fantasytools_assets.csv"
-    # )
+    cur_team = frozenset(['HUL', 'ALO', 'STR', 'PIA', 'BEA', 'MCL', 'KCK'])
+    get_scores(
+        predictions_file="../results/hungary/predictions.csv", 
+        values_file="../results/hungary/josh_fantasytools_assets.csv"
+    )
     team_analysis(
-        values_table = "../results/belgium/josh_fantasytools_assets.csv", 
-        output = "../results/belgium/josh_fantasytools_results1.csv", 
+        values_table = "../results/hungary/josh_fantasytools_assets.csv", 
+        output = "../results/hungary/josh_fantasytools_results1.csv", 
         weight=False,
         starting_team=cur_team,
-        surplus=0.1,
-        max_dif=2
-    ) 
+        surplus=15.9,
+        max_dif=3
+    )

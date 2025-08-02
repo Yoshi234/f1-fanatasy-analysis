@@ -1,8 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt 
-from ISLP.models import (ModelSpec as MS, summarize)
-import statsmodels.api as sm
-from ISLP import confusion_table
+try:
+    from ISLP.models import (ModelSpec as MS, summarize)
+    import statsmodels.api as sm
+    from ISLP import confusion_table
+except:
+    print("[ERROR]: MISSING ISLP and STATSMODELS")
 import numpy as np
 import fastf1
 import os
