@@ -112,7 +112,9 @@ def see_keys():
     regulations = pd.read_csv("../../data/regulations.csv")
     print(f"[INFO]: regulations keys = {regulations.keys()}")
     
-def set_prev_round_data(df:pd.DataFrame, yr=2024, rnd=None):
+def set_prev_round_data(
+    df:pd.DataFrame, 
+    yr=2024, rnd=None):
     '''
     Set prev round data from standings. Input dataframe should 
     contain data from the aggregated season. Sets the maximum 
@@ -172,8 +174,12 @@ def set_prev_round_data(df:pd.DataFrame, yr=2024, rnd=None):
     return result
 
 def fetch_new(
-    current_date=None, key=None, test=False, no_key=True,
-    debug=False
+    current_date=None, 
+    key=None, 
+    test=False, 
+    no_key=True,
+    debug=False,
+    base_data_file='../../data/clean_model_data.feather'
 ):
     '''
     fetches most recent data for records not contained clean_model_data.feather
@@ -190,9 +196,11 @@ def fetch_new(
     
     if "clean_model_data2.csv" in os.listdir("../../data"):
         og_dat = pd.read_csv("../../data/clean_model_data2.csv")
-    else:
-        og_dat = pd.read_feather('../../data/clean_model_data.feather')
+    elif '.feather' in base_data_file:
+        og_dat = pd.read_feather(base_data_file)
         print("[INFO]: Reading feather starter data")
+    else:
+        pass # add an else option here for what to do
 
     # TODO 7/30/2025
     # Update the `fetch_new` function so that it can run even without
@@ -318,41 +326,30 @@ def fetch_new(
         if speeds is None:
             continue # move on to next event on the calendar if track speeds fail to aggregate
             
+        # duplicate speed entries for all drivers and concat to base data
         speeds = pd.concat([speeds]*len(base), ignore_index=True)
         base = pd.concat([base.reset_index().drop('index', axis=1), speeds], axis=1)
 
-        # print("[INFO]: base.keys() = {}".format(base.keys()))
-        # print("[INFO]: fullnames = {}".format(base['FullName']))
-        # print("[INFO]: first name = {}".format(base['FirstName']))
-        # print("[INFO]: last name = {}".format(base['LastName']))
         # set local and api-based keys for the driver information
-        
         if base['DriverId'].nunique() > 1:
-            # print("[INFO]: DriverId available. Using 'DriverId' value")
-            # print("[INFO]: DriverIds = {}".format(base['DriverId'].unique()))
-            # print("[INFO]: number of unique ids = {}".format(len(base['DriverId'].unique())))
             fastf1_dkey='DriverId'
             local_dkey='driverRef'
             
         elif (base['LastName'].nunique() > 1) and (base['FirstName'].nunique() > 1):
-            # print("[INFO]: DriverId unavailable, using first and last name")
             fastf1_dkey="FullName"
             local_dkey="fullname"
 
         # TODO TODO TODO TODO : merge the 'DriverId' values based on Abbreviation values
         # and then drop the Abbreviation column. Actually, this isn't necessary, 
         # somewhere later, the 
-            
-        # print("[DEBUG]: base[fastf1_dkey] = \n{}".format(base[fastf1_dkey]))
-        # print("[DEBUG]: base[fastf1_dkey] type = ",type(base[fastf1_dkey]))
-        # for most recent version (fastf1 newest version) 
-        
+                   
         if isinstance(base[fastf1_dkey], fastf1.core.SessionResults):
             unique_drivers = base[fastf1_dkey].unique()
             # print("[DEBUG]: Unique Drivers = {}".format(unique_drivers))
         else:
             unique_drivers = base[fastf1_dkey].unique()
             
+        # iterate over all drivers 
         for driver in unique_drivers:
             driver_x = drivers.loc[drivers[local_dkey]==driver]
             
@@ -371,8 +368,6 @@ def fetch_new(
                 res_id += 1
             else:
                 print("[INFO]: add {} info to the drivers.csv file".format(driver))
-        
-        # print("[INFO]: base.keys() [1] = {}".format(base.keys()))
                 
         # check availability of TeamId value
         fastf1_ckey = 'TeamId'
@@ -393,7 +388,6 @@ def fetch_new(
             else:
                 print("{}[INFO]: add {} info to the constructors.csv file{}".format(Colors.RED, construct, Colors.ENDC))
 
-        # print("[INFO]: base.keys() [2] = {}".format(base.keys()))
         
         # reset column orderings
         base['lng'] = c1['lng']
@@ -432,12 +426,13 @@ def fetch_new(
               'is_major_cycle', 'is_major_reg', 'cycle', 'quali_position']] = np.nan
     full_dat['ref_year'] = curr_yr
     full_dat['year'] = curr_yr
-    
     full_dat[['fastestLap', 'rank', 'fastestLapTime', 'fastestLapSpeed', 'laps',
               'statusId']] = np.nan
     
-    # print("[DEBUG]: full_dat keys = {} \n**(after standings applied)**".format(full_dat.keys()))
     
+    # TODO: if generating from scratch - just save as full_dat and 
+    # don't concatenate the data 7/30/2025
+
     # subset the necessary columns of the data set
     result = pd.concat([full_dat[og_dat.keys()].reset_index(drop=True),
                         og_dat.reset_index(drop=True)], 
