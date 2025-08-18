@@ -185,6 +185,26 @@ def fetch_new(
     fetches most recent data for records not contained clean_model_data.feather
     generates matching dataframe and updates existing clean_model_data.feather
     file with additional data
+
+    Args:
+    - current_date (str): date-string indicating the date up to which 
+      race data should be fetched. Data from the YEAR of the current_date,
+      date, up until the most recent race will be fetched.
+    - key (str, None): the file name for a key file containing the api 
+      key for making requests to the visual crossing api. 
+    - test (bool): if test is true, will run the function in a test configuration,
+      instead of in a deployment run
+    - no_key (bool): if true, then sets the api_key as none and ignores data 
+      which requires api access to the visual crossing api
+    - debug (bool): if true, runs the function in a debug configuration
+    - base_data_file (str, None): the relative / absolute string path to the base data
+      file to add data to. If this variable is None, then the data file will be 
+      generated from scratch, and a data folder added to the root of this repository
+      to store it. Setting the base_data_file=None option will also effectively
+      overwrite existing data if this is desired. 
+    Returns: 
+    - result (pd.DataFrame): the dataframe which results from the data pulls which
+      are made to obtain the data. 
     '''
     if 'private.txt' in os.listdir():
         key = 'private.txt'
@@ -194,13 +214,15 @@ def fetch_new(
     drivers = pd.read_csv("../../data/drivers.csv")
     circuits = pd.read_csv("../../data/circuits.csv")
     
-    if "clean_model_data2.csv" in os.listdir("../../data"):
-        og_dat = pd.read_csv("../../data/clean_model_data2.csv")
+    if base_data_file is None:
+        og_dat = None
     elif '.feather' in base_data_file:
         og_dat = pd.read_feather(base_data_file)
         print("[INFO]: Reading feather starter data")
+    elif "clean_model_data2.csv" in os.listdir("../../data"):
+        og_dat = pd.read_csv("../../data/clean_model_data2.csv")
     else:
-        pass # add an else option here for what to do
+        og_dat = None # UPDATE CHECK
 
     # TODO 7/30/2025
     # Update the `fetch_new` function so that it can run even without
@@ -214,7 +236,7 @@ def fetch_new(
         current_date = datetime.strptime(current_date, "%Y-%m-%d")
         curr_yr = current_date.year
 
-    if curr_yr in og_dat['year'].unique(): # get the most recent recorded round
+    if (not og_dat is None) and (curr_yr in og_dat['year'].unique()): # get the most recent recorded round
         prev_round = og_dat.loc[(og_dat['round']==og_dat.loc[og_dat['year']==curr_yr, 'round'].max()) &
                                 (og_dat['year']==curr_yr)]
         p_r = prev_round['round'].unique()[0]
@@ -236,7 +258,11 @@ def fetch_new(
         return og_dat
 
     # TODO Update logic - if no og_dat available - how to set?
-    res_id = og_dat['resultId'].max() + 1 
+    if og_dat is None:
+        res_id = 1
+    else:
+        res_id = og_dat['resultId'].max() + 1 
+
     r1_id = None
     full_dat = None
     # iterate over schedule and fill records for each race
@@ -255,8 +281,11 @@ def fetch_new(
         else: print("[SUCCESS]: Circuits found for {}".format(l1))
 
         # set race id
-        if r1_id is None and og_dat.shape[0] != 0:
-            r1_id = og_dat['raceId'].max() + 1
+        if r1_id is None:
+            if og_dat is None:
+                r1_id = 1
+            elif og_dat.shape[0] != 0:
+                r1_id = og_dat['raceId'].max() + 1
         else:
             r1_id += 1
         
@@ -367,7 +396,7 @@ def fetch_new(
                 base.loc[base[fastf1_dkey]==driver, 'resultId']=res_id
                 res_id += 1
             else:
-                print("[INFO]: add {} info to the drivers.csv file".format(driver))
+                print("{}[WARNING]: add {} info to the drivers.csv file{}".format(Colors.YELLOW, driver, Colors.ENDC))
                 
         # check availability of TeamId value
         fastf1_ckey = 'TeamId'
@@ -434,9 +463,18 @@ def fetch_new(
     # don't concatenate the data 7/30/2025
 
     # subset the necessary columns of the data set
-    result = pd.concat([full_dat[og_dat.keys()].reset_index(drop=True),
-                        og_dat.reset_index(drop=True)], 
-                        axis=0)
+    if og_dat is None:
+        result = full_dat
+    else:
+        result = pd.concat([full_dat[og_dat.keys()].reset_index(drop=True),
+                            og_dat.reset_index(drop=True)], 
+                            axis=0)
+        
+    # create a data folder if it does not exist - it should though, 
+    # or the function will have failed when cross-referencing data
+    if not os.path.exists("../../data"):
+        os.mkdir("../../data")
+
     # save resulting data
     if not debug:
         result.to_csv("../../data/clean_model_data2.csv", index=False)
@@ -448,8 +486,20 @@ def fetch_new(
             'driverId', 'constructorId', 'points', 'prev_driver_points', 'prev_construct_points'
         ]]
         print("{}[DEBUG]: Result Data \n{}{}".format(Colors.GREEN, display_dat, Colors.ENDC))
+
     return result
 
 if __name__ == "__main__":
     # fetch data starting from 2024
-    fetch_new(current_date=None, debug=False)
+    import sys
+
+    if len(sys.argv) > 1:
+        date = sys.argv[1]
+    else:
+        date = '2025-04-10'
+
+    fetch_new(
+        current_date=date, 
+        debug=False,
+        base_data_file='../../data/clean_model_data2.csv'
+    )
