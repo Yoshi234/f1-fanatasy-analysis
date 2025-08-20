@@ -501,5 +501,5 @@ if __name__ == "__main__":
     fetch_new(
         current_date=date, 
         debug=False,
-        base_data_file='../../data/clean_model_data2.csv'
+        base_data_file=None
     )

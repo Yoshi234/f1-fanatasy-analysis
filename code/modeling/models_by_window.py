@@ -1,5 +1,5 @@
 import pandas as pd
-import matplotlib.pyplot as plt 
+
 try:
     from ISLP.models import (ModelSpec as MS, summarize)
     import statsmodels.api as sm
@@ -10,13 +10,14 @@ import numpy as np
 import fastf1
 import os
 
-#from imblearn.over_sampling import (
-#    SMOTENC,
-#    SMOTE
-#)
 from sklearn.metrics import f1_score
 from sklearn.linear_model import LassoCV
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
+
+# visualization
+import seaborn as sns
+import matplotlib.pyplot as plt 
 
 from tqdm import tqdm
 
@@ -34,6 +35,7 @@ try:
         add_podiums
     )
     from mod_point_distrib import std_pt_distrib
+    from colors import Colors
 except: # import as module
     # from .param_train import (
     #     logistic_fit,
@@ -54,6 +56,7 @@ except: # import as module
     from setup.get_track_augment import (
         get_track_speeds
     )
+    from modeling.colors import Colors
     
 import warnings
 warnings.filterwarnings('ignore')
@@ -188,6 +191,7 @@ def get_forecast_data(
     
     return data_window[full_vars] 
 
+
 def _fit_model(
     input_data,
     main_vars,
@@ -201,11 +205,19 @@ def _fit_model(
         4:2,
         5:2
     },
+    model_type = 'LASSO',
+    main_features_only = False, 
     save_feature_coeffs=True,
     resample_data=False,
     dest_file='../../results/lasso_coeffs.csv'
 ):
     '''
+    NOTE: this function works only with LASSO in its feature
+    selection mode. Of course, you can just fit a lasso regression model
+    with all features and use the output model directly. Otherwise,
+    using `main_features_only=True` with `model_type='LASSO'` will not 
+    work as expected. The same kind of logic is applied to 'full_vars'
+
     Args:
     - non_cats ------ list of variables that are not categorical
       variables and should be scaled.
@@ -214,29 +226,33 @@ def _fit_model(
       the data. This should set a much heavier weighting for the 
       most recent races.  
     - exclude_vars -- variables to be excluded from model fitting
+    - model_type (str): Three options -
+      - LASSO: uses the LassoCV regression module in order to 
+        automatically determine the best l1 penalization parameter value
+        and fit a regression model
+      - RF: uses random forest random forest regression model
+      - DT: uses decision tree regression model
+    - main_features_only (bool): set to true if you have a final 
+      list of features to use, and do not want to deal with categorical
+      feature encodings explicitly
+    Returns:
+    - fitted model
     '''
+    if model_type != "LASSO" and main_features_only == False:
+        print("{}[WARNING]: model type is {} but main_features_only=False{}".format(
+            Colors.YELLOW, model_type, Colors.ENDC)
+        )
     final_dat = None    
-    # before duplicating the data - apply standard scaling to all 
-    # of the numeric features
+    # before duplicating the data - apply standard scaling to all of the numeric features
     scaler = StandardScaler()
-    input_data[main_vars] = scaler.fit_transform(input_data[main_vars])
     
-    # get the sorted list of race_ids based on the date of the event?
-    input_data = input_data.sort_values(
-        by=['year', 'round'], ascending=[True,True]
-    )
-    # print("[INFO]: na_dat = \n{}".format(input_data.isna().sum()))
+    if not main_features_only:
+        input_data[main_vars] = scaler.fit_transform(input_data[main_vars])
     
     fit_dat = input_data.loc[~input_data['raceId'].isnull()]
     # get the series of raceIds - should be sorted
     unique_ids = fit_dat['raceId'].unique()
     
-    # for r_id in input_data['raceId'].unique():
-    #     print("race = {} | n = {}".format(r_id, input_data.loc[input_data['raceId']==r_id].shape[0]))
-    
-    # null_races = input_data.loc[~input_data['raceId'].isnull()]
-    # print("[INFO]: null_races = \n{}".format(null_races))
-    # print("[INFO]: Non-null matrix = {}".format(input_data.shape[0] - null_races.shape[0]))
     for i in range(len(unique_ids)):
         for r in range(ratio[i]):
             # duplicate data n times
@@ -246,15 +262,10 @@ def _fit_model(
             else:
                 final_dat = pd.concat([final_dat, duplicates], ignore_index=True)
         
-    all_vars = main_vars + cat_features + [response_var] + ['raceId']
-    # print("[INFO]: before dropping na's")
-    # for r_id in final_dat['raceId'].unique():
-    #     sub = final_dat.loc[final_dat['raceId']==r_id]
-    #     na_sums = sub.isna().sum()
-    #     na_sums = na_sums[na_sums>0]
-    #     print("[INFO]: null vals = \n{}".format(na_sums))
-    #     print("[INFO]: entries race {} | n = {} p = {}".format(r_id, sub.shape[0], sub.shape[0]/final_dat.shape[0]))
-    #     print("---")
+    if main_features_only == True:
+        all_vars = main_vars + [response_var] + ['raceId']
+    else:
+        all_vars = main_vars + cat_features + [response_var] + ['raceId']
         
     final_dat = final_dat[all_vars].dropna() # drop null rows
     
@@ -271,44 +282,113 @@ def _fit_model(
     y = final_dat[response_var]
     
     # include categoricals and main features
-    full_vars = main_vars + cat_features
-    # print("[INFO]: --- all fitted features ---\n{}".format(full_vars))
+    if not main_features_only:
+        full_vars = main_vars + cat_features
+    else:
+        full_vars = main_vars
     
-    X = final_dat[full_vars]
-    # X = input_data.drop(exclude_vars, axis=1)
+    X = final_dat[full_vars] # subset data according to full_vars list
     
-    # cat_indices = []
-    # for col in X.keys():
-    #     if col in cat_features:
-    #         cat_indices.append(X.columns.get_loc(col))          
-    # try:
-    #     oversample = SMOTENC(
-    #         categorical_features=cat_indices,
-    #         # k_neighbors=y.sum()-1, 
-    #         random_state=0
-    #     )
-    #     X, y = oversample.fit_resample(X, y)
-    # except:
-    #     oversample = SMOTE(
-    #         k_neighbors=y.sum()-1
-    #     )
-    #     X, y = oversample.fit_resample(X, y)
-    
-    model = LassoCV(cv=5, random_state=42)
+    if model_type == "LASSO":
+        model = LassoCV(
+            alphas = np.logspace(-4, 2, 50),  # evaluate 50 alpha values from 10^-4 to 10^2
+            cv=5, random_state=42
+        )
+    if model_type == "RF":
+        model = RandomForestRegressor(
+            # min_samples_leaf = 6,
+            # max_depth = 8,
+            # min_samples_split = 10,
+            # max_features = 4  # increase max number of features
+        )
+
     model.fit(X, y)
     r2 = model.score(X, y)
     
     if not resample_data: print("[INFO]: Model Training Fit R2 = {}".format(r2))
     
-    model_coefficients = pd.DataFrame({
-        'Feature': X.columns, 
-        'Coefficient': model.coef_
-    })
-    if save_feature_coeffs and not resample_data: 
-        print("[INFO]: ---- saving lasso model coefficients ----")
-        model_coefficients.to_csv(dest_file, index=False)
-        
-    return model
+    # if using LASSO regression, save and return the feature coefficients
+    if model_type == "LASSO":
+        model_coefficients = pd.DataFrame({
+            'Feature': X.columns, 
+            'Coefficient': model.coef_
+        })
+        # select features with non-zero coefficients
+        model_coefficients = model_coefficients[np.abs(model_coefficients['Coefficient']) > 0]
+        if save_feature_coeffs and not resample_data: 
+            print("[INFO]: ---- saving lasso model coefficients ----")
+            model_coefficients.to_csv(dest_file, index=False)
+
+        return model, model_coefficients['Feature'].tolist()
+    # if using any other type of modeling, just return the fitted model
+    else:
+        return model
+    
+
+def plot_coeffs(
+    coefficients_df:pd.DataFrame,
+    drivers_df:pd.DataFrame,
+    out_path:str,
+    plot_title:str = 'Race Model Coefficient Scores', 
+    xlab:str = 'Coefficient Scores',
+    ylab:str = 'Feature'
+):
+    '''
+    Args:
+    - coefficients_df (pd.DataFrame): pandas dataframe with two columns
+      col1 = 'Feature' and col2 = 'Coefficient'. The first contains a column 
+      with features - many of which will contain a driver ID indicator, whereas
+      the coefficient column simply contains the corresponding regression coefficient
+      for the given feature
+    - drivers_df (pd.DataFrame): pandas dataframe which at minimum contains columns
+      'driverId' and 'driverRef' - driver Id's correspond to the driverId's mentioned
+      in many features, and the driverRef corresponds to their most representative
+      name/identifier
+    - out_path (str): path to save the output plot to
+    Returns:
+    - new_coeff_df (pd.DataFrame): an updated version of the existing coefficient 
+      dataframe with updated (more interpretable) feature names 
+    '''
+    new_coeff_df = coefficients_df.copy()
+    new_driver_df = drivers_df.copy()
+
+    # extract driver Id's from feature names
+    new_coeff_df['Feature'] = new_coeff_df['Feature'].str.replace('-', '_') 
+    ids = [x[1] for x in new_coeff_df['Feature'].str.split("_").tolist()]
+
+    new_coeff_df['driverId'] = ids
+    new_driver_df['driverId'] = new_driver_df['driverId'].astype(float).astype(str)
+
+    new_coeff_df = pd.merge(
+        left = new_coeff_df,
+        right = new_driver_df[['driverId', 'driverRef']],
+        how = 'left', 
+        on = 'driverId'
+    ) # fill null values with empty strings
+
+    new_coeff_df.loc[pd.isnull(new_coeff_df['driverRef']), 'driverRef'] =\
+          new_coeff_df.loc[pd.isnull(new_coeff_df['driverRef']), 'driverId']
+
+    # use driver Id values to fill in names
+    new_coeff_df['Feature'] = new_coeff_df.apply(
+        lambda row: row['Feature'].replace(row['driverId'], row['driverRef']), axis=1
+    )
+
+    # sort the data for plotting
+    new_coeff_df = new_coeff_df.sort_values(by='Coefficient')
+
+    # plot the coefficients
+    sns.set_theme(style='whitegrid')
+    plt.figure(figsize=(10,10))
+    sns.barplot(x='Coefficient', y='Feature', data=new_coeff_df, palette='viridis')
+    plt.title(plot_title)
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
+    plt.tight_layout()
+    plt.savefig(out_path)
+
+    # return the updated df
+    return new_coeff_df
 
             
 def fit_eval_window_model(
@@ -408,6 +488,30 @@ def fit_eval_window_model(
     #  3. make predictions over the forecast data and save for each driver
     #  4. compute standard deviation over n predictions - set as the standard error of predictions
     #  5. make predictions over the normal fit data and plot the confidence intervals
+
+    # obtain model features for race and qualifying models
+    _, race_features = _fit_model(
+        data_window, 
+        main_vars=m_feats, 
+        response_var = target[0],
+        cat_features = drivers + constructors,
+        save_feature_coeffs = True, 
+        resample_data = False, 
+        model_type = 'LASSO', 
+        main_features_only = False,
+        dest_file = "{}/lasso_coeffs_race.csv".format(predictions_folder)
+    )
+    _, quali_features = _fit_model(
+        data_window,
+        main_vars = m_feats,
+        response_var = target[1],
+        cat_features = drivers + constructors,
+        save_feature_coeffs = True, 
+        resample_data = False, 
+        model_type = 'LASSO', 
+        main_features_only = False,
+        dest_file = "{}/lasso_coeffs_quali.csv".format(predictions_folder)
+    )
     
     # TODO finish bootstrapping the standard errors of predictions for a lasso regression model
     if std_errors == True:
@@ -417,20 +521,24 @@ def fit_eval_window_model(
                   desc='processing trials', dynamic_ncols=True, leave=True):
             model1 = _fit_model(
                 data_window,
-                main_vars = m_feats,
+                main_vars = race_features,
                 response_var=target[0],
                 cat_features= drivers + constructors,
                 save_feature_coeffs=False,
                 resample_data=True,
+                model_type = 'RF',
+                main_features_only = True,
                 dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
             )
             model2 = _fit_model(
                 data_window,
-                main_vars = m_feats,
+                main_vars = quali_features,
                 response_var=target[1],
                 cat_features= drivers + constructors,
                 save_feature_coeffs=False,
                 resample_data=True,
+                model_type = 'RF',
+                main_features_only = True,
                 dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
             )
 
@@ -440,8 +548,8 @@ def fit_eval_window_model(
             X2['prev_driver_position'] = X2['prev_driver_position'].fillna(20)
             X2 = X2.fillna(0)
 
-            y1 = model1.predict(X2)
-            y2 = model2.predict(X2)
+            y1 = model1.predict(X2[race_features])
+            y2 = model2.predict(X2[quali_features])
             
             # set results
             base_results[target[0]] = y1
@@ -468,29 +576,31 @@ def fit_eval_window_model(
     # 4. generate (track) interactions over the significant drivers
     # 5. generate (track) interactions over significant constructors
     
-    # make predictions for input race year=2025, round=3
-    print('ok 1')
+    # make predictions for input race year=2025, round=3 using a random forest model
     model1 = _fit_model(
         data_window,
-        main_vars = m_feats,
+        main_vars = race_features,
         response_var=target[0],
+        model_type = 'RF',
         cat_features= drivers + constructors,
-        save_feature_coeffs=True,
+        save_feature_coeffs=False,
+        main_features_only = True,
         resample_data=False,
-        dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
+        # dest_file="{}/round{}_grid_lasso-coefs.csv".format(predictions_folder, pred_round)
     )
-    print('ok 2')
     model2 = _fit_model(
         data_window,
-        main_vars = m_feats,
+        main_vars = quali_features,
         response_var=target[1],
+        model_type = 'RF',
         cat_features= drivers + constructors,
-        save_feature_coeffs=True,
+        save_feature_coeffs=False,
+        main_features_only = True,
         resample_data=False,
-        dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
+        # dest_file="{}/round{}_position-order_lasso-coefs.csv".format(predictions_folder, pred_round)
     )
-    y1 = model1.predict(X2)
-    y2 = model2.predict(X2)
+    y1 = model1.predict(X2[race_features])
+    y2 = model2.predict(X2[quali_features])
     
     X2[target[0]] = y1
     X2[target[1]] = y2
@@ -584,7 +694,30 @@ def fit_eval_window_model(
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(f"{predictions_folder}/race_plot.jpg")
+
+    quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
+    race_coeffs_df = pd.read_csv("{}/lasso_coeffs_race.csv".format(predictions_folder))
+
+    # plot quali coefficients
+    quali_coeffs_df = plot_coeffs(
+        coefficients_df = quali_coeffs_df, 
+        drivers_df = drivers_db,
+        out_path = "{}/race_coeff_plot.jpg".format(predictions_folder),
+        plot_title = "Race Model Coefficients Plot",
+    )
+
+    # plot race coefficients
+    race_coeffs_df = plot_coeffs(
+        coefficients_df = race_coeffs_df, 
+        drivers_df = drivers_db, 
+        out_path = "{}/quali_coeff_plot.jpg".format(predictions_folder),
+        plot_title = "Quali Model Coefficients Plot"
+    )
     
+    # save new coefficients
+    quali_coeffs_df.to_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder), index=False)
+    race_coeffs_df.to_csv("{}/lasso_coeffs_race.csv".format(predictions_folder), index=False)
+
     
 def models_by_window_2(
     start_yr, 
@@ -777,6 +910,7 @@ def models_by_window_2(
     # return results dataframe
     return results_df
 
+
 def main1():
     cat_features = ['circuitId', 'driverId', 'constructorId']
     features = [
@@ -846,10 +980,8 @@ def main1():
         print(f"[INFO]: confidence interval = {results.mean()} +/- {dev}")
         print(f"[INFO]: explicit confidence interval = [{min_pt}, {max_pt}]")
 
-def main2():
-    '''
-    Some stuff
-    '''
+
+def main2(
     main_features = [
         # 'prev_driver_points',
         'prev_driver_position',
@@ -857,7 +989,7 @@ def main2():
         # 'prev_construct_points',
         'prev_construct_position',
         'prev_construct_wins',
-    ]
+    ],
     vars = [
         # 'strt_len_mean',
         # 'strt_len_q1',
@@ -874,39 +1006,47 @@ def main2():
         'corner_spd_min',
         'num_slow_corners',
         'num_fast_corners',
+        'num_med_corners'
         # 'num_corners',
         # 'circuit_len'
-    ]
-    if __name__ == "__main__":
-        start_data = "../../data/clean_model_data2.csv"
-        drivers_data="../../data/drivers.csv"
-        dest_file="../../results/lasso_coeffs.csv",
-        constructors_data="../../data/constructors.csv"
-    else:
-        start_data = "../data/clean_model_data2.csv"
-        drivers_data="../data/drivers.csv"
-        dest_file="../results/lasso_coeffs.csv"
-        constructors_data="../data/constructors.csv"
-        
+    ],
+    start_data = '../data/clean_model_data2.csv',
+    drivers_data = '../data/drivers.csv',
+    dest_file = '../results/lasso_coeffs.csv',
+    constructors_data = '../data/constructors.csv',
+    predictions_folder = '../results/hungary',
+    pred_round = 14,
+    k = 5,
+    year = 2025,
+    std_errors = True,
+    boot_trials = 100
+):
+    '''
+    Some stuff
+    '''
     # NOTE: code currently set up to run from main.py in 
     # code. Do not run this file directly
+    if not os.path.exists(predictions_folder):
+        os.mkdir(predictions_folder)
+
     fit_eval_window_model(
         main_features=main_features,
         vars=vars,
-        k=5,
-        round=14,
-        year=2025,
+        k=k,
+        round=pred_round, # fits model up to the round before the prediction round
+        year=year,
         target=['grid','positionOrder'],
-        predictions_folder="../results/hungary",
+        predictions_folder=predictions_folder,
         start_data=start_data,
         drivers_data=drivers_data,
-        dest_file=dest_file,
+        dest_file=f'{predictions_folder}/lasso_coeff.csv',
         constructors_data=constructors_data,
-        pred_round=14,
-        std_errors=True,
-        boot_trials=100
+        pred_round=pred_round,
+        std_errors=std_errors,
+        boot_trials=boot_trials
     )
-    
+
+
 if __name__ == "__main__":
     print("[ERROR]: DO NOT RUN MODULE DIRECTLY")
     # main2()
