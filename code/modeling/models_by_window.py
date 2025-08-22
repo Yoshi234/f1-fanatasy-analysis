@@ -10,7 +10,7 @@ import numpy as np
 import fastf1
 import os
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, r2_score
 from sklearn.linear_model import LassoCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
@@ -152,6 +152,9 @@ def get_forecast_data(
         base.loc[base['TeamId']==constructor, 'constructorId']=c_id_val
     
     # set event query and get the track speed data 
+    print(event)
+    print(c1) # DEBUG - multi/single item event query for circuit?
+
     evnt_qry = pd.DataFrame(
         {"year":[year-1], # get the most recent year's speed data
          "name":[event['EventName'].item()],
@@ -397,7 +400,7 @@ def fit_eval_window_model(
     year=2025,
     k=6,
     round=3,
-    target='positionOrder',
+    target=['positionOrder', 'grid'],
     predictions_folder="../../results",
     start_data="../../data/clean_model_data2.csv",
     drivers_data="../../data/drivers.csv",
@@ -405,31 +408,60 @@ def fit_eval_window_model(
     constructors_data="../../data/constructors.csv",
     pred_round=None,
     boot_trials=1000,
-    std_errors=True
+    std_errors=True,
+    print_preds=True,
+    plot_model_coef=True,
+    eval_mode=True
 ):    
     '''
-    Enumerate list of features to be included for fitting in the model
+    Follows the specified regression approach to model race outcomes
+    for the given prediction round based on data from the prior k
+    races. 
+
+    Args:
+    - main_features (list[str]): list of features names to use in 
+      fitting the model in addition to individual drivers and constructors.
+      These are included by default - ALWAYS
+    - vars (list[str]): list of features which should be interacted with 
+      drivers / constructors. For example, one might 'num_med_corners'
+      which would result in an interaction like 
+      yuki_tsunoda * num_med_corners - how is Yuki's mean performance affected
+      by the number of medium speed corners at a given track?
+    - year (int): The year over which to do the modeling
+    - k (int): Number of prior racing rounds of data to fit on
+    - target (list[str]): A two-tuple will also work here. The first target
+      should be the feature name for the race outcome, and the second the qualifying
+      outcome. 
+    - predictions_folder (path[str] REQUIRED): a path to save all modeling outputs
+      to. 
+    - start_data (path[str]): path to the data required
+    - drivers_data (path[str]): path to the drivers reference data required
+    - constructors_data (path[str]): path to the constructors reference data required
+    - pred_round (int, None): The round number to make predictions for
+    - boot_trials (int): The number of trials to use in bootstrapping the standard
+      errors of model predictions. Only relevant if `std_errors = True`
+    - std_errors (bool): If true, will use bootstrapping the standard error of
+      predictions for each driver
+    - print_preds (bool): If true, will print the predictions for a given race
+    - plot_model_coef (bool): If true, will plot the coefficients of the fitted
+      feature selection (lasso regression) model and save it to the predictions
+      folder.
+    - eval_mdoe (bool): If true, will return 
+
+    Returns:
+    - predictions (pd.DataFrame, None): (if eval_mode = True)
+      the output predictions for the given 
+      prediction round in dataframe form. If eval_mode is false, nothing will
+      be returned by this function
     '''
     # load the data and fetch the correct data window
     drivers_db = pd.read_csv(drivers_data)
     constructors_db = pd.read_csv(constructors_data)
     all_data = pd.read_csv(start_data)
     fit_data = get_data_in_window(k=k, yr=year, r_val=round, track_dat=all_data)
-    # keys = ['TeamI]
-    # print(fit_data.loc[fit_data['constructorId']==215, ['driverId', 'constructorId']])
-    # print(fit_data.keys())
-    # exit()
-    
-    # print("[INFO]: number of unique rounds = {}".format(fit_data['raceId'].unique()))
     
     # get standardized point distributions
     fit_data, std_pt_features = std_pt_distrib(fit_data)
-    
-    # NO MISSING DATA HERE
-    # print("[INFO]: (after data loading) na data = \n{}".format(fit_data[vars].isna().sum()))
-    # print("non missing = \n{}".format(fit_data[vars].count()))
-    # fit lasso models to get the right features
-    # no more podium prediction - just regress onto finishing position
     
     # reset indices to avoid concatenation issues 
     fit_data = fit_data.reset_index(drop=True)
@@ -439,25 +471,12 @@ def fit_eval_window_model(
     
     check_vars = vars + drivers
     
-    # print("[INFO]: (after feature encoding) na data = \n{}".format(data_window[check_vars].isna().sum()))
-    # print("= non missing = \n{}".format(data_window[check_vars].count()))
-    
     # re-subset the data for only non-na values
     data_window = data_window.loc[data_window[drivers].notna().any(axis=1)]
-    
-    # print("[INFO]: (after subsetting) na data = \n{}".format(data_window[check_vars].isna().sum()))
-    # print("= non missing = \n{}".format(data_window[check_vars].count()))
-    
-    # print("[DEBUG]: --- drivers --- \n{}".format(drivers))
-    # print("[DEBUG]: --- constructors --- \n{}".format(constructors))
     for var in vars: # add all interactions one-by-one
         data_window, d_interact = add_interaction(
             data_window, vars=[var], drivers=drivers, ret_term_names=True, debug=False, print_debug=False)
-        # data_window, c_interact = add_interaction(
-        #     data_window, vars=[var], constructors=constructors, ret_term_names=True)
-        
-        # print("[INFO]: d_interact = {}".format(d_interact))
-        # print("[INFO]: c_interact = {}".format(c_interact))
+            
         d_interactions += d_interact
         # c_interactions += c_interact
     
@@ -513,7 +532,6 @@ def fit_eval_window_model(
         dest_file = "{}/lasso_coeffs_quali.csv".format(predictions_folder)
     )
     
-    # TODO finish bootstrapping the standard errors of predictions for a lasso regression model
     if std_errors == True:
         q_results = pd.DataFrame({key:[] for key in drivers})
         r_results = pd.DataFrame({key:[] for key in drivers})
@@ -542,9 +560,6 @@ def fit_eval_window_model(
                 dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
             )
 
-            #_x2 = X2.isna().sum()
-            #print(_x2[_x2 > 0])
-            #print(X2.loc[X2.isna().any(axis=1)][''])
             X2['prev_driver_position'] = X2['prev_driver_position'].fillna(20)
             X2 = X2.fillna(0)
 
@@ -597,49 +612,48 @@ def fit_eval_window_model(
         save_feature_coeffs=False,
         main_features_only = True,
         resample_data=False,
-        # dest_file="{}/round{}_position-order_lasso-coefs.csv".format(predictions_folder, pred_round)
     )
+
     y1 = model1.predict(X2[race_features])
     y2 = model2.predict(X2[quali_features])
     
     X2[target[0]] = y1
     X2[target[1]] = y2
     
-    print("--- {} Predictions for Round {} of {} ---".format(target, pred_round, year))
+    # the predictions general output requires that standard errors be given
+    if print_preds == True and std_errors == True:
+        print("--- {} Predictions for Round {} of {} ---".format(target, pred_round, year))
     
-    X2['Driver'] = np.nan
-    X2['Constructor']=np.nan
-    for d in drivers:
-        id_val = float(d.split("_")[-1])
-        driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'code'].values[0]
-        q_std_err = q_results[d].std()
-        r_std_err = r_results[d].std()
-        X2.loc[X2[d]==1.0, ['Driver', 'std_err_q', 'std_err_r']] = [driver_name, q_std_err, r_std_err]
-    for c in constructors:
-        id_val = float(c.split("_")[-1])
-        # print("id_val",id_val)
-        constructor_name = constructors_db.loc[constructors_db['constructorId']==id_val, 'constructorRef'].values[0]
-        # print("constructor",constructor_name)
+        X2['Driver'] = np.nan
+        X2['Constructor']=np.nan
+        for d in drivers:
+            id_val = float(d.split("_")[-1])
+            driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'code'].values[0]
+            q_std_err = q_results[d].std()
+            r_std_err = r_results[d].std()
+            X2.loc[X2[d]==1.0, ['Driver', 'std_err_q', 'std_err_r']] = [driver_name, q_std_err, r_std_err]
+
+        for c in constructors:
+            id_val = float(c.split("_")[-1])
+            constructor_name = constructors_db.loc[constructors_db['constructorId']==id_val, 'constructorRef'].values[0]
+            X2.loc[X2[c]==1.0, 'Constructor']=constructor_name
         
-        X2.loc[X2[c]==1.0, 'Constructor']=constructor_name
-        # print(X2.loc[X2[c]==1.0, ['Driver', 'Constructor']])
-    
-    preds = X2[['Driver', 'Constructor', target[0], 'std_err_q', target[1], 'std_err_r']]
-    preds['sp'] = preds['grid'].rank(method='min').astype(int)
-    preds['fp'] = preds['positionOrder'].rank(method='min').astype(int)
-    preds['position_change'] = preds['sp'] - preds['fp']
-    
-    preds['fantasy_pts'] = preds['position_change']*1
-    for idx, pred in preds.iterrows():
-        preds.loc[idx, 'fantasy_pts'] += dq_scores[pred['sp']]
-        preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
-    
-    if not os.path.exists(predictions_folder): 
-        os.mkdir(predictions_folder)
+        preds = X2[['Driver', 'Constructor', target[0], 'std_err_q', target[1], 'std_err_r']]
+        preds['sp'] = preds['grid'].rank(method='min').astype(int)
+        preds['fp'] = preds['positionOrder'].rank(method='min').astype(int)
+        preds['position_change'] = preds['sp'] - preds['fp']
         
-    preds = preds.sort_values(by='fp')
-    print(preds)
-    preds.to_csv(f"{predictions_folder}/predictions.csv", index=False)
+        preds['fantasy_pts'] = preds['position_change']*1
+        for idx, pred in preds.iterrows():
+            preds.loc[idx, 'fantasy_pts'] += dq_scores[pred['sp']]
+            preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
+        
+        if not os.path.exists(predictions_folder): 
+            os.mkdir(predictions_folder)
+        
+        preds = preds.sort_values(by='fp')
+        print(preds)
+        preds.to_csv(f"{predictions_folder}/predictions.csv", index=False)
     
     if std_errors == True:
         color_dict = {
@@ -695,29 +709,61 @@ def fit_eval_window_model(
         plt.tight_layout()
         plt.savefig(f"{predictions_folder}/race_plot.jpg")
 
-    quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
-    race_coeffs_df = pd.read_csv("{}/lasso_coeffs_race.csv".format(predictions_folder))
+    if plot_model_coef == True:
+        quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
+        race_coeffs_df = pd.read_csv("{}/lasso_coeffs_race.csv".format(predictions_folder))
 
-    # plot quali coefficients
-    quali_coeffs_df = plot_coeffs(
-        coefficients_df = quali_coeffs_df, 
-        drivers_df = drivers_db,
-        out_path = "{}/race_coeff_plot.jpg".format(predictions_folder),
-        plot_title = "Race Model Coefficients Plot",
-    )
+        # plot quali coefficients
+        quali_coeffs_df = plot_coeffs(
+            coefficients_df = quali_coeffs_df, 
+            drivers_df = drivers_db,
+            out_path = "{}/race_coeff_plot.jpg".format(predictions_folder),
+            plot_title = "Race Model Coefficients Plot",
+        )
 
-    # plot race coefficients
-    race_coeffs_df = plot_coeffs(
-        coefficients_df = race_coeffs_df, 
-        drivers_df = drivers_db, 
-        out_path = "{}/quali_coeff_plot.jpg".format(predictions_folder),
-        plot_title = "Quali Model Coefficients Plot"
-    )
+        # plot race coefficients
+        race_coeffs_df = plot_coeffs(
+            coefficients_df = race_coeffs_df, 
+            drivers_df = drivers_db, 
+            out_path = "{}/quali_coeff_plot.jpg".format(predictions_folder),
+            plot_title = "Quali Model Coefficients Plot"
+        )
+        
+        # save new coefficients
+        quali_coeffs_df.to_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder), index=False)
+        race_coeffs_df.to_csv("{}/lasso_coeffs_race.csv".format(predictions_folder), index=False)
+
+    if eval_mode == True:
+        round_subset = all_data.loc[all_data['round']==pred_round, ['driverId', 'positionOrder', 'grid']].rename(
+            columns={'positionOrder': 'positionOrder_true', 'grid': 'grid_true'}
+        )  
+
+        for d in drivers:
+            id_val = float(d.split("_")[-1])
+            driver_id = drivers_db.loc[drivers_db['driverId']==id_val, 'driverId'].values[0]
+            X2.loc[X2[d]==1.0, 'driverId'] = driver_id
+
+        output_vals = X2[['driverId', target[0], target[1]]].rename(
+            columns={target[0]: 'positionOrder_pred', target[1]: 'grid_pred'}
+        )
+        output_vals['sp_pred'] = output_vals['grid_pred'].rank(method='min').astype(int)
+        output_vals['fp_pred'] = output_vals['positionOrder_pred'].rank(method='min').astype(int)
+
+        ret_df = pd.merge(
+            left=output_vals, 
+            right=round_subset, 
+            how='left', 
+            on='driverId', 
+        )
+
+        return ret_df
     
-    # save new coefficients
-    quali_coeffs_df.to_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder), index=False)
-    race_coeffs_df.to_csv("{}/lasso_coeffs_race.csv".format(predictions_folder), index=False)
-
+    elif eval_mode == False and (std_errors==True and print_preds==True):
+        return preds # should be given for the conditions above
+    
+    else:
+        return None
+    
     
 def models_by_window_2(
     start_yr, 
@@ -1045,6 +1091,100 @@ def main2(
         std_errors=std_errors,
         boot_trials=boot_trials
     )
+
+
+def eval_model(
+    main_features=[
+        'prev_driver_position', 
+        'prev_driver_wins', 
+        'prev_construct_position', 
+        'prev_construct_wins'
+    ],
+    vars = [
+        'strt_len_median', 'strt_len_min',
+        'avg_track_spd', 'corner_spd_median', 
+        'corner_spd_max', 'corner_spd_min',
+        'num_slow_corners', 'num_fast_corners', 
+        'num_med_corners'
+    ],
+    start_data = '../data/clean_model_data2.csv',
+    drivers_data = '../data/drivers.csv', 
+    constructors_data = '../data/constructors.csv',
+    k = 5,
+    year = 2025,
+    result_folder = '../results/model_metrics'
+):
+    '''
+    Runs model evaluation for the configured modeling approach
+    with fit_eval_model()
+
+    Args:
+    - main_features (list[str]): list of main feature names + drivers
+      to use
+    - vars (list[str]): list of track feature names to interact with 
+      drivers and constructors
+    - start_data (path[str]): the path to the data to use for model fitting
+    - k (int): the number of previous rounds to use for fitting
+    - year (int): the year over which to do the predictions
+    - result_folder (path[str]): path to the results output folder to save
+      model metrics to
+    Returns:
+    - None
+    '''
+    tmp_read = pd.read_csv(start_data)
+    max_round = tmp_read['round'].max()
+    del tmp_read
+
+    if not os.path.exists(result_folder):
+        os.mkdir(result_folder)
+
+    # init to None
+    all_preds = None
+    start_round = k+1
+    for i in tqdm(range(max_round - k)):
+        cur_round = start_round + i
+        preds = fit_eval_window_model(
+            main_features = main_features, 
+            vars = vars, 
+            year = year, 
+            k = k, 
+            std_errors=False,
+            round = cur_round, 
+            target = ['positionOrder', 'grid'], 
+            predictions_folder = result_folder, 
+            start_data = start_data, 
+            constructors_data = constructors_data, 
+            drivers_data = drivers_data, 
+            pred_round = cur_round,
+            dest_file = f"{result_folder}/lasso_coeff.csv",
+            eval_mode = True
+        )
+        if all_preds is None:
+            all_preds = preds
+        else:
+            all_preds = pd.concat(
+                [all_preds, preds], axis=0, ignore_index=True
+            )
+    
+    print(Colors.YELLOW)
+    print(all_preds)
+    print(Colors.ENDC)
+
+    all_preds = all_preds.dropna()
+    
+    r2_race = r2_score(all_preds['positionOrder_true'], all_preds['positionOrder_pred'])
+    r2_quali = r2_score(all_preds['grid_true'], all_preds['grid_pred'])
+
+    print("[R2-Cont.  RESULTS]: Race: {} | Quali: {}".format(r2_race, r2_quali))
+
+    r2_race_b = r2_score(all_preds['positionOrder_true'], all_preds['fp_pred'])
+    r2_quali_b = r2_score(all_preds['grid_pred'], all_preds['sp_pred'])
+
+    print("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
+
+    with open(f"{result_folder}/metrics.txt", 'w') as f:
+        f.write("[R2-Cont.  RESULTS]: Race: {} | Quali: {}\n".format(r2_race, r2_quali))
+        f.write("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
 
 
 if __name__ == "__main__":

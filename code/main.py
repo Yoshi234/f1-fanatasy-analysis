@@ -1,4 +1,8 @@
-from modeling.models_by_window import fit_eval_window_model, main2
+from modeling.models_by_window import (
+    fit_eval_window_model, 
+    main2,
+    eval_model
+)
 from setup.fetch_new_dat import fetch_new
 import sys
 
@@ -20,6 +24,10 @@ if __name__ == "__main__":
             debug = False, 
             base_data_file = '../data/clean_model_data2.csv'
         )
+        
+    elif sys.argv[1] == 'eval_true': 
+        eval_model()
+
     if sys.argv[2] == 'fit_true':
         # run modeling
         main2(

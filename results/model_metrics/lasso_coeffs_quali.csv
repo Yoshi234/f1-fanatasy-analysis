@@ -1,0 +1,6 @@
+Feature,Coefficient,driverId,driverRef
+prev_driver_points_prop,-2.9007733222961125,driver,driver
+driverId_leclerc_num_slow_corners,-0.3402600645100496,844.0,leclerc
+driverId_antonelli_num_slow_corners,0.0005653347293881,861.0,antonelli
+driverId_antonelli_num_fast_corners,0.0350718383331444,861.0,antonelli
+driverId_hulkenberg_num_slow_corners,0.3363883394418387,807.0,hulkenberg
