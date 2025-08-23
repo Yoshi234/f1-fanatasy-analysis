@@ -12,6 +12,7 @@ import os
 
 from sklearn.metrics import f1_score, r2_score
 from sklearn.linear_model import LassoCV
+from sklearn.tree import DecisionTreeRegressor, plot_tree
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
@@ -211,8 +212,11 @@ def _fit_model(
     model_type = 'LASSO',
     main_features_only = False, 
     save_feature_coeffs=True,
+    show_tree = True,
     resample_data=False,
-    dest_file='../../results/lasso_coeffs.csv'
+    dest_file='../../results/lasso_coeffs.csv',
+    results_folder='../../results',
+    output_tree_file_name='sample_dt_quali.jpg'
 ):
     '''
     NOTE: this function works only with LASSO in its feature
@@ -304,9 +308,16 @@ def _fit_model(
             # min_samples_split = 10,
             # max_features = 4  # increase max number of features
         )
+    if model_type == 'DT':
+        model = DecisionTreeRegressor()
 
     model.fit(X, y)
     r2 = model.score(X, y)
+
+    if show_tree and model_type == "DT":
+        plt.figure(figsize=(15,15))
+        plot_tree(model, feature_names=X.columns, class_names=[response_var], filled=True)
+        plt.savefig(f'{results_folder}/{output_tree_file_name}')
     
     if not resample_data: print("[INFO]: Model Training Fit R2 = {}".format(r2))
     
@@ -603,6 +614,22 @@ def fit_eval_window_model(
         resample_data=False,
         # dest_file="{}/round{}_grid_lasso-coefs.csv".format(predictions_folder, pred_round)
     )
+    # generate decision tree for visualization
+    model1_b = _fit_model(
+        data_window,
+        main_vars = race_features,
+        response_var=target[0],
+        model_type = 'DT',
+        cat_features= drivers + constructors,
+        save_feature_coeffs=False,
+        main_features_only = True,
+        resample_data=False,
+        show_tree=True,
+        results_folder=predictions_folder,
+        output_tree_file_name='race_model.pdf'
+    )
+    
+    # qualifying models
     model2 = _fit_model(
         data_window,
         main_vars = quali_features,
@@ -612,6 +639,19 @@ def fit_eval_window_model(
         save_feature_coeffs=False,
         main_features_only = True,
         resample_data=False,
+    )
+    model2_b = _fit_model(
+        data_window,
+        main_vars = quali_features,
+        response_var=target[1],
+        model_type = 'DT',
+        cat_features= drivers + constructors,
+        save_feature_coeffs=False,
+        main_features_only = True,
+        resample_data=False,
+        show_tree=True,
+        results_folder=predictions_folder,
+        output_tree_file_name='quali_model.pdf'
     )
 
     y1 = model1.predict(X2[race_features])

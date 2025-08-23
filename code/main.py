@@ -26,7 +26,9 @@ if __name__ == "__main__":
         )
         
     elif sys.argv[1] == 'eval_true': 
-        eval_model()
+        eval_model(
+            k=2
+        )
 
     if sys.argv[2] == 'fit_true':
         # run modeling
@@ -45,10 +47,10 @@ if __name__ == "__main__":
                 'num_med_corners'
             ],
             start_data = '../data/clean_model_data2.csv',
-            pred_round = 14,
-            k = 5,
+            pred_round = 15,
+            k = 3,
             year = 2025,
             std_errors = True, 
-            boot_trials = 20,
-            predictions_folder = "../results/hungary"
+            boot_trials = 100,
+            predictions_folder = "../results/zandfort"
         )

@@ -18,14 +18,14 @@ HAD,racing_bulls,-0.8,5.7,driver,0.5,-0.6,-4
 BEA,haas,8.4,8.1,driver,0.686,0.14,9
 BOR,sauber,4.2,4.7,driver,0.429,-0.2,0
 OCO,haas,8.0,9.1,driver,1.0,-0.51,-6
-COL,alpine,,,driver,0.0,,,
 LAW,racing_bulls,-1.4,4.5,driver,1.0,0.0,16
+COL,alpine,,,driver,,,
 RED,red_bull,35.2,28.1,constructor,0.0,0.29,15
 MCL,mclaren,82.2,33.9,constructor,0.0,0.3,62
 FER,ferrari,59.2,30.0,constructor,0.0,0.3,42
 MER,mercedes,37.4,25.4,constructor,0.0,0.23,20
 AST,aston_martin,21.8,10.7,constructor,0.0,0.6,10
-RB,racing_bulls,9.4,11.8,constructor,0.0,-0.6,3
+VRB,racing_bulls,9.4,11.8,constructor,0.0,-0.6,3
 HAA,haas,21.0,12.0,constructor,0.0,0.47,3
 ALP,alpine,10.2,8.9,constructor,0.0,-0.51,3
 KCK,sauber,32.2,8.7,constructor,0.0,0.52,-1
