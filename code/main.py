@@ -27,7 +27,7 @@ if __name__ == "__main__":
         
     elif sys.argv[1] == 'eval_true': 
         eval_model(
-            k=2
+            k=4
         )
 
     if sys.argv[2] == 'fit_true':
@@ -50,7 +50,8 @@ if __name__ == "__main__":
             pred_round = 15,
             k = 3,
             year = 2025,
-            std_errors = True, 
+            std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/zandfort"
+            predictions_folder = "../results/zandfort",
+            output_feature_report= True
         )

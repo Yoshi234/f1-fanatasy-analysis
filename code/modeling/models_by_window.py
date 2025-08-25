@@ -16,6 +16,9 @@ from sklearn.tree import DecisionTreeRegressor, plot_tree
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
+# predictions report
+from treeinterpreter import treeinterpreter as ti
+
 # visualization
 import seaborn as sns
 import matplotlib.pyplot as plt 
@@ -253,8 +256,8 @@ def _fit_model(
     # before duplicating the data - apply standard scaling to all of the numeric features
     scaler = StandardScaler()
     
-    if not main_features_only:
-        input_data[main_vars] = scaler.fit_transform(input_data[main_vars])
+    # because the forecast data uses centered data, so does the training data
+    input_data[main_vars] = scaler.fit_transform(input_data[main_vars])
     
     fit_dat = input_data.loc[~input_data['raceId'].isnull()]
     # get the series of raceIds - should be sorted
@@ -404,6 +407,29 @@ def plot_coeffs(
     # return the updated df
     return new_coeff_df
 
+
+def print_report(
+    feature_contributions,
+    report_path
+):
+    '''
+    Prints predictions report for each of the drivers - top 10 features and 
+    such using treeinterpreter
+
+    Parameters:
+    - feature_contributions (dict): contains a dictionary of format 
+      'driver': contributions (contributions output from ti.predict)
+    - report_path (path[str]): path to the report output file.
+    Returns:
+    - None
+    '''
+    with open(report_path, 'w') as f:
+        for driver in feature_contributions:
+            pred, out_df, bias = feature_contributions[driver]
+            f.write(f'[DRIVER]: {driver} [PRED]: {pred} [BIAS]: {bias}\n')
+            f.write(f'---')
+            f.write(f'{out_df.to_string()}\n\n')
+
             
 def fit_eval_window_model(
     main_features, # main features like prev points, etc.
@@ -422,7 +448,9 @@ def fit_eval_window_model(
     std_errors=True,
     print_preds=True,
     plot_model_coef=True,
-    eval_mode=True
+    eval_mode=True,
+    output_feature_report=True,
+    output_dt_vis=False
 ):    
     '''
     Follows the specified regression approach to model race outcomes
@@ -521,7 +549,7 @@ def fit_eval_window_model(
 
     # obtain model features for race and qualifying models
     _, race_features = _fit_model(
-        data_window, 
+        data_window.copy(), 
         main_vars=m_feats, 
         response_var = target[0],
         cat_features = drivers + constructors,
@@ -532,7 +560,7 @@ def fit_eval_window_model(
         dest_file = "{}/lasso_coeffs_race.csv".format(predictions_folder)
     )
     _, quali_features = _fit_model(
-        data_window,
+        data_window.copy(),
         main_vars = m_feats,
         response_var = target[1],
         cat_features = drivers + constructors,
@@ -549,7 +577,7 @@ def fit_eval_window_model(
         for i in tqdm(range(boot_trials), ncols=100,
                   desc='processing trials', dynamic_ncols=True, leave=True):
             model1 = _fit_model(
-                data_window,
+                data_window.copy(),
                 main_vars = race_features,
                 response_var=target[0],
                 cat_features= drivers + constructors,
@@ -560,7 +588,7 @@ def fit_eval_window_model(
                 dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
             )
             model2 = _fit_model(
-                data_window,
+                data_window.copy(),
                 main_vars = quali_features,
                 response_var=target[1],
                 cat_features= drivers + constructors,
@@ -604,7 +632,7 @@ def fit_eval_window_model(
     
     # make predictions for input race year=2025, round=3 using a random forest model
     model1 = _fit_model(
-        data_window,
+        data_window.copy(),
         main_vars = race_features,
         response_var=target[0],
         model_type = 'RF',
@@ -614,24 +642,26 @@ def fit_eval_window_model(
         resample_data=False,
         # dest_file="{}/round{}_grid_lasso-coefs.csv".format(predictions_folder, pred_round)
     )
-    # generate decision tree for visualization
-    model1_b = _fit_model(
-        data_window,
-        main_vars = race_features,
-        response_var=target[0],
-        model_type = 'DT',
-        cat_features= drivers + constructors,
-        save_feature_coeffs=False,
-        main_features_only = True,
-        resample_data=False,
-        show_tree=True,
-        results_folder=predictions_folder,
-        output_tree_file_name='race_model.pdf'
-    )
-    
+
+    if output_dt_vis:
+        # generate decision tree for visualization
+        model1_b = _fit_model(
+            data_window,
+            main_vars = race_features,
+            response_var=target[0],
+            model_type = 'DT',
+            cat_features= drivers + constructors,
+            save_feature_coeffs=False,
+            main_features_only = True,
+            resample_data=False,
+            show_tree=True,
+            results_folder=predictions_folder,
+            output_tree_file_name='race_model.pdf'
+        )
+        
     # qualifying models
     model2 = _fit_model(
-        data_window,
+        data_window.copy(),
         main_vars = quali_features,
         response_var=target[1],
         model_type = 'RF',
@@ -640,19 +670,54 @@ def fit_eval_window_model(
         main_features_only = True,
         resample_data=False,
     )
-    model2_b = _fit_model(
-        data_window,
-        main_vars = quali_features,
-        response_var=target[1],
-        model_type = 'DT',
-        cat_features= drivers + constructors,
-        save_feature_coeffs=False,
-        main_features_only = True,
-        resample_data=False,
-        show_tree=True,
-        results_folder=predictions_folder,
-        output_tree_file_name='quali_model.pdf'
-    )
+    
+    if output_dt_vis:
+        model2_b = _fit_model(
+            data_window,
+            main_vars = quali_features,
+            response_var=target[1],
+            model_type = 'DT',
+            cat_features= drivers + constructors,
+            save_feature_coeffs=False,
+            main_features_only = True,
+            resample_data=False,
+            show_tree=True,
+            results_folder=predictions_folder,
+            output_tree_file_name='quali_model.pdf'
+        )
+
+    if output_feature_report:
+        race_pred_dict = dict()
+        quali_pred_dict = dict()
+
+        # find driver matches and do preds 1-by-1
+        for d in drivers: # iterate through list of driver cat feature names
+            id_val = float(d.split("_")[-1])
+            sample = X2.loc[X2[d] == 1.0]
+            driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'code'].values[0]
+            
+            # make predictions
+            pred_r, bias_r, contrib_r = ti.predict(model1, sample[race_features])
+            pred_q, bias_q, contrib_q = ti.predict(model2, sample[quali_features])
+
+            # output display dfs
+            r_out = pd.DataFrame(
+                {'Input Value': sample[race_features].to_numpy()[0], 'Feature Score': contrib_r[0]}, 
+                index=race_features)
+            r_out = r_out.loc[r_out['Feature Score']!=0].sort_values(by='Feature Score')
+
+            q_out = pd.DataFrame(
+                {'Input Value': sample[quali_features].to_numpy()[0], 'Feature Score': contrib_q[0]},
+                index=quali_features,
+            )
+            q_out = q_out.loc[q_out['Feature Score']!=0].sort_values(by='Feature Score')
+
+            # save for output
+            race_pred_dict[driver_name] = [pred_r, r_out, bias_r]
+            quali_pred_dict[driver_name] = [pred_q, q_out, bias_q]
+        
+        print_report(race_pred_dict, f'{predictions_folder}/race_report.txt')
+        print_report(quali_pred_dict, f'{predictions_folder}/quali_report.txt')
 
     y1 = model1.predict(X2[race_features])
     y2 = model2.predict(X2[quali_features])
@@ -1105,7 +1170,8 @@ def main2(
     k = 5,
     year = 2025,
     std_errors = True,
-    boot_trials = 100
+    boot_trials = 100,
+    output_feature_report = True
 ):
     '''
     Some stuff
@@ -1129,7 +1195,8 @@ def main2(
         constructors_data=constructors_data,
         pred_round=pred_round,
         std_errors=std_errors,
-        boot_trials=boot_trials
+        boot_trials=boot_trials,
+        output_feature_report=output_feature_report
     )
 
 
@@ -1152,7 +1219,8 @@ def eval_model(
     constructors_data = '../data/constructors.csv',
     k = 5,
     year = 2025,
-    result_folder = '../results/model_metrics'
+    result_folder = '../results/model_metrics',
+    output_feature_report = False
 ):
     '''
     Runs model evaluation for the configured modeling approach
@@ -1197,7 +1265,8 @@ def eval_model(
             drivers_data = drivers_data, 
             pred_round = cur_round,
             dest_file = f"{result_folder}/lasso_coeff.csv",
-            eval_mode = True
+            eval_mode = True,
+            output_feature_report= output_feature_report
         )
         if all_preds is None:
             all_preds = preds
