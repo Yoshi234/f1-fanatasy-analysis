@@ -40,11 +40,22 @@ try:
     )
     from mod_point_distrib import std_pt_distrib
     from colors import Colors
+    from agg_fp2_laps import (
+        get_driver_session_ranks,
+        get_new_pred,
+        get_new_pred_alt
+    )
 except: # import as module
     # from .param_train import (
     #     logistic_fit,
     #     xgb_fit
     # )
+    from modeling.agg_fp2_laps import (
+        get_driver_session_ranks,
+        get_new_pred_alt, 
+        get_new_pred,
+        recalc_fantasy_score
+    )
     from modeling.selection import (
         get_data_in_window, 
         get_features, 
@@ -450,7 +461,8 @@ def fit_eval_window_model(
     plot_model_coef=True,
     eval_mode=True,
     output_feature_report=True,
-    output_dt_vis=False
+    output_dt_vis=False,
+    fp2_adjust=True
 ):    
     '''
     Follows the specified regression approach to model race outcomes
@@ -813,6 +825,20 @@ def fit_eval_window_model(
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(f"{predictions_folder}/race_plot.jpg")
+
+        if fp2_adjust == True:
+            # use standard errors and fp2 data to update predictions
+            ranks = get_driver_session_ranks(round=pred_round, base_predictions=preds)
+            z = pd.merge(preds, ranks, on='Driver')
+            z['adj_pred_order2'] = z.apply(get_new_pred_alt,axis=1)
+
+            # replace existing predictiong order value
+            z['fp'] = z['adj_pred_order2'].rank(method='min', ascending=True)
+            z = recalc_fantasy_score(z, dq_scores, dr_scores)
+
+            z = z.sort_values(by='fp')
+            z.to_csv(f'{predictions_folder}/predictions.csv', index=False)
+
 
     if plot_model_coef == True:
         quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))

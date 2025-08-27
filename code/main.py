@@ -48,10 +48,10 @@ if __name__ == "__main__":
             ],
             start_data = '../data/clean_model_data2.csv',
             pred_round = 15,
-            k = 3,
+            k = 5,
             year = 2025,
             std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/zandfort",
+            predictions_folder = "../results/hungary",
             output_feature_report= True
         )
