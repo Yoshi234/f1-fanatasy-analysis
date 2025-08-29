@@ -347,10 +347,10 @@ def _fit_model(
             print("[INFO]: ---- saving lasso model coefficients ----")
             model_coefficients.to_csv(dest_file, index=False)
 
-        return model, model_coefficients['Feature'].tolist()
+        return (model, model_coefficients['Feature'].tolist())
     # if using any other type of modeling, just return the fitted model
     else:
-        return model
+        return (model, None)
     
 
 def plot_coeffs(
@@ -462,7 +462,9 @@ def fit_eval_window_model(
     eval_mode=True,
     output_feature_report=True,
     output_dt_vis=False,
-    fp2_adjust=True
+    fp2_adjust=True,
+    model_type='LASSO',
+    adjustment_session='FP2'
 ):    
     '''
     Follows the specified regression approach to model race outcomes
@@ -497,7 +499,10 @@ def fit_eval_window_model(
     - plot_model_coef (bool): If true, will plot the coefficients of the fitted
       feature selection (lasso regression) model and save it to the predictions
       folder.
-    - eval_mdoe (bool): If true, will return 
+    - eval_mdoe (bool): If true, will return
+    - model_type (str): type of model to use. options=['RF', 'LASSO'] 
+    - adjustment_session (str): options=['FP2', 'FP1', 'FP3'] - the free practice
+      session to use as a pace benchmark to adjust predictions
 
     Returns:
     - predictions (pd.DataFrame, None): (if eval_mode = True)
@@ -529,19 +534,9 @@ def fit_eval_window_model(
             data_window, vars=[var], drivers=drivers, ret_term_names=True, debug=False, print_debug=False)
             
         d_interactions += d_interact
-        # c_interactions += c_interact
-    
-    # print("[INFO]: (after adding interactions) na data = \n{}".format(data_window[d_interactions].isna().sum()))
-    # print("= non missing = \n{}".format(data_window[d_interactions].count()))
     
     m_feats = main_features + d_interactions + c_interactions + std_pt_features
-    # print("[INFO]: ---- main features ---- \n{}".format(m_feats))
-    # if len(m_feats) > len(fit_data):
-    #     print("[ERROR]: full rank matrix - number of features = {} max features = {}".format(len(m_feats), len(fit_data)))
-    #     exit()
-    # else:
-    # print(constructors)
-    # print("[INFO]: total features = {} max features = {}".format(len(m_feats), len(fit_data)))
+    
     if pred_round == None:
         pred_round = round+1
     
@@ -560,6 +555,9 @@ def fit_eval_window_model(
     #  5. make predictions over the normal fit data and plot the confidence intervals
 
     # obtain model features for race and qualifying models
+
+    # only use lasso feature selection for 'non-lasso' runs
+    # if not model_type == "LASSO":
     _, race_features = _fit_model(
         data_window.copy(), 
         main_vars=m_feats, 
@@ -586,8 +584,15 @@ def fit_eval_window_model(
     if std_errors == True:
         q_results = pd.DataFrame({key:[] for key in drivers})
         r_results = pd.DataFrame({key:[] for key in drivers})
+
+        # if lasso regression - use full feature set
+        if model_type == 'LASSO':
+            race_features = m_feats
+            quali_features = m_feats
+
         for i in tqdm(range(boot_trials), ncols=100,
                   desc='processing trials', dynamic_ncols=True, leave=True):
+            
             model1 = _fit_model(
                 data_window.copy(),
                 main_vars = race_features,
@@ -595,10 +600,10 @@ def fit_eval_window_model(
                 cat_features= drivers + constructors,
                 save_feature_coeffs=False,
                 resample_data=True,
-                model_type = 'RF',
+                model_type = model_type,
                 main_features_only = True,
                 dest_file="../results/round{}_grid_lasso-coefs.csv".format(pred_round)
-            )
+            )[0] # take the first output
             model2 = _fit_model(
                 data_window.copy(),
                 main_vars = quali_features,
@@ -606,10 +611,10 @@ def fit_eval_window_model(
                 cat_features= drivers + constructors,
                 save_feature_coeffs=False,
                 resample_data=True,
-                model_type = 'RF',
+                model_type = model_type,
                 main_features_only = True,
                 dest_file="../results/round{}_position-order_lasso-coefs.csv".format(pred_round)
-            )
+            )[0]
 
             X2['prev_driver_position'] = X2['prev_driver_position'].fillna(20)
             X2 = X2.fillna(0)
@@ -647,13 +652,13 @@ def fit_eval_window_model(
         data_window.copy(),
         main_vars = race_features,
         response_var=target[0],
-        model_type = 'RF',
+        model_type = model_type,
         cat_features= drivers + constructors,
         save_feature_coeffs=False,
         main_features_only = True,
         resample_data=False,
         # dest_file="{}/round{}_grid_lasso-coefs.csv".format(predictions_folder, pred_round)
-    )
+    )[0]
 
     if output_dt_vis:
         # generate decision tree for visualization
@@ -669,19 +674,19 @@ def fit_eval_window_model(
             show_tree=True,
             results_folder=predictions_folder,
             output_tree_file_name='race_model.pdf'
-        )
+        )[0]
         
     # qualifying models
     model2 = _fit_model(
         data_window.copy(),
         main_vars = quali_features,
         response_var=target[1],
-        model_type = 'RF',
+        model_type = model_type,
         cat_features= drivers + constructors,
         save_feature_coeffs=False,
         main_features_only = True,
         resample_data=False,
-    )
+    )[0]
     
     if output_dt_vis:
         model2_b = _fit_model(
@@ -696,9 +701,9 @@ def fit_eval_window_model(
             show_tree=True,
             results_folder=predictions_folder,
             output_tree_file_name='quali_model.pdf'
-        )
+        )[0]
 
-    if output_feature_report:
+    if output_feature_report and model_type == 'RF':
         race_pred_dict = dict()
         quali_pred_dict = dict()
 
@@ -828,7 +833,7 @@ def fit_eval_window_model(
 
         if fp2_adjust == True:
             # use standard errors and fp2 data to update predictions
-            ranks = get_driver_session_ranks(round=pred_round, base_predictions=preds)
+            ranks = get_driver_session_ranks(round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
             z = pd.merge(preds, ranks, on='Driver')
             z['adj_pred_order2'] = z.apply(get_new_pred_alt,axis=1)
 
@@ -1197,7 +1202,9 @@ def main2(
     year = 2025,
     std_errors = True,
     boot_trials = 100,
-    output_feature_report = True
+    output_feature_report = True,
+    adjust_session = 'FP1',
+    model_type = 'LASSO'
 ):
     '''
     Some stuff
@@ -1222,7 +1229,9 @@ def main2(
         pred_round=pred_round,
         std_errors=std_errors,
         boot_trials=boot_trials,
-        output_feature_report=output_feature_report
+        output_feature_report=output_feature_report,
+        adjustment_session=adjust_session,
+        model_type=model_type
     )
 
 
@@ -1292,7 +1301,8 @@ def eval_model(
             pred_round = cur_round,
             dest_file = f"{result_folder}/lasso_coeff.csv",
             eval_mode = True,
-            output_feature_report= output_feature_report
+            output_feature_report= output_feature_report,
+            fp2_adjust=True
         )
         if all_preds is None:
             all_preds = preds

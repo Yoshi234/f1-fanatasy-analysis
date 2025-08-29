@@ -376,13 +376,14 @@ if __name__ == "__main__":
     # please update this
     driversA, driversB, constructorsA, constructorsB = copilot_price_data_output()
 
-    location = "zandfort"
+    location = "zandfort_rf"
     results_folder = "../results"
     assets_file = "josh_fantasytools_assets.csv"
+    team = 'team2'
 
     # set team gen parameters
-    run_get_scores = False
-    update_prices = False
+    run_get_scores = True
+    update_prices = True
 
     if not assets_file in os.listdir(f"{results_folder}/{location}"):
         dest = f"{results_folder}/{location}/{assets_file}"
@@ -409,8 +410,8 @@ if __name__ == "__main__":
     teams_info = {
         'team1': {
             'cur_team': frozenset(['HUL', 'ALO', 'STR', 'PIA', 'BEA', 'MCL', 'KCK']),
-            'surplus': 100,
-            'max_dif': 10
+            'surplus': 15.9,
+            'max_dif': 3
         },
         'team2': {
             'cur_team': frozenset(['BOR', 'HAD', 'LAW', 'PIA', 'ALO', 'FER', 'MCL']),
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     }
 
     # # run team analysis based on metrics
-    selected_team = teams_info['team1']
+    selected_team = teams_info[team]
     team_analysis(
         values_table = f"{results_folder}/{location}/{assets_file}", 
         output = f"{results_folder}/{location}/josh_fantasytools_results1.csv", 

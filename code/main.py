@@ -52,6 +52,8 @@ if __name__ == "__main__":
             year = 2025,
             std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/hungary",
-            output_feature_report= True
+            predictions_folder = "../results/zandfort",
+            output_feature_report= True,
+            model_type = 'LASSO',
+            adjust_session = 'FP2'
         )
