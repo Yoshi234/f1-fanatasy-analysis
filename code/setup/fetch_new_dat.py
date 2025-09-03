@@ -114,7 +114,9 @@ def see_keys():
     
 def set_prev_round_data(
     df:pd.DataFrame, 
-    yr=2024, rnd=None):
+    yr=2024, rnd=None,
+    drivers_file='../data/drivers.csv'
+):
     '''
     Set prev round data from standings. Input dataframe should 
     contain data from the aggregated season. Sets the maximum 
@@ -145,7 +147,7 @@ def set_prev_round_data(
     ]
     
     #get standings and reset variable names
-    standings = get_standings_data(cur_round=rnd, year=yr)
+    standings = get_standings_data(cur_round=rnd, year=yr, drivers_pth=drivers_file)
     rename_cols = {'cum_points':'prev_driver_points', 
                    'driver_standing':'prev_driver_position', 
                    'cum_driver_wins':'prev_driver_wins', 
@@ -179,6 +181,9 @@ def fetch_new(
     test=False, 
     no_key=True,
     debug=False,
+    constructors_data_file='../../data/constructors.csv',
+    drivers_data_file='../../data/drivers.csv',
+    circuits_data_file='../../data/circuits.csv',
     base_data_file='../../data/clean_model_data.feather'
 ):
     '''
@@ -210,17 +215,17 @@ def fetch_new(
         key = 'private.txt'
 
     # read cross-ref data
-    constructors = pd.read_csv("../../data/constructors.csv")
-    drivers = pd.read_csv("../../data/drivers.csv")
-    circuits = pd.read_csv("../../data/circuits.csv")
+    constructors = pd.read_csv(constructors_data_file)
+    drivers = pd.read_csv(drivers_data_file)
+    circuits = pd.read_csv(circuits_data_file)
     
     if base_data_file is None:
         og_dat = None
     elif '.feather' in base_data_file:
         og_dat = pd.read_feather(base_data_file)
         print("[INFO]: Reading feather starter data")
-    elif "clean_model_data2.csv" in os.listdir("../../data"):
-        og_dat = pd.read_csv("../../data/clean_model_data2.csv")
+    elif 'clean_model_data2.csv' in base_data_file:
+        og_dat = pd.read_csv(base_data_file)
     else:
         og_dat = None # UPDATE CHECK
 
@@ -449,7 +454,7 @@ def fetch_new(
     # print("{}[DEBUG]: Unique team IDs = {}{}".format(Colors.RED, full_dat[fastf1_ckey].unique(), Colors.ENDC))
     # print("[DEBUG]: full_dat keys = {} \n**(before standings applied)**".format(full_dat.keys()))
 
-    full_dat = set_prev_round_data(full_dat, yr=curr_yr)
+    full_dat = set_prev_round_data(full_dat, yr=curr_yr, drivers_file=drivers_data_file)
     full_dat[['regulation_id', 'engine_reg', 'tire_reg', 'aero_reg', 
               'chastech_reg', 'sporting_reg', 'pitstop_reg', 'years_since_major_cycle', 
               'is_major_cycle', 'is_major_reg', 'cycle', 'quali_position']] = np.nan
@@ -476,8 +481,8 @@ def fetch_new(
         os.mkdir("../../data")
 
     # save resulting data
-    if not debug:
-        result.to_csv("../../data/clean_model_data2.csv", index=False)
+    if (not debug) and (not base_data_file is None):
+        result.to_csv(base_data_file, index=False)
     # fastestLap, rank, fastestLapTime, fastestLapSpeed is not 
     # useful since we can't access this before the race
     

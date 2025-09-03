@@ -20,9 +20,12 @@ if __name__ == "__main__":
             current_date = None, 
             key = None, 
             test = False, 
-            no_key = False, 
+            no_key = True, 
             debug = False, 
-            base_data_file = '../data/clean_model_data2.csv'
+            base_data_file = '../data/clean_model_data2.csv',
+            constructors_data_file = '../data/constructors.csv',
+            drivers_data_file = '../data/drivers.csv',
+            circuits_data_file = '../data/circuits.csv'
         )
         
     elif sys.argv[1] == 'eval_true': 
@@ -47,13 +50,13 @@ if __name__ == "__main__":
                 'num_med_corners'
             ],
             start_data = '../data/clean_model_data2.csv',
-            pred_round = 15,
+            pred_round = 16,
             k = 5,
             year = 2025,
             std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/zandfort",
+            predictions_folder = "../results/monza",
             output_feature_report= True,
-            model_type = 'LASSO',
-            adjust_session = 'FP2'
+            model_type = 'RF',
+            adjust_session = None # if None - it ignores the fp2 session adjustment option
         )

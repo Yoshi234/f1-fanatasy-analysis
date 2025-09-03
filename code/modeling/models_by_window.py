@@ -471,7 +471,7 @@ def fit_eval_window_model(
     for the given prediction round based on data from the prior k
     races. 
 
-    Args:
+    Parameters:
     - main_features (list[str]): list of features names to use in 
       fitting the model in addition to individual drivers and constructors.
       These are included by default - ALWAYS
@@ -830,6 +830,9 @@ def fit_eval_window_model(
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(f"{predictions_folder}/race_plot.jpg")
+
+        if adjustment_session == None:
+            fp2_adjust = False 
 
         if fp2_adjust == True:
             # use standard errors and fp2 data to update predictions
