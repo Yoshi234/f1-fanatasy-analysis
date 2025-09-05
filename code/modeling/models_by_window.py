@@ -837,8 +837,10 @@ def fit_eval_window_model(
         if fp2_adjust == True:
             # use standard errors and fp2 data to update predictions
             ranks = get_driver_session_ranks(round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
-            z = pd.merge(preds, ranks, on='Driver')
-            z['adj_pred_order2'] = z.apply(get_new_pred_alt,axis=1)
+            z = pd.merge(preds, ranks, on='Driver', how='left')
+            z['adj_pred_order2'] = z.apply(get_new_pred_alt, axis=1)
+
+            z.loc[pd.isnull(z['adj_pred_order2']), 'adj_pred_order2'] = z.loc[pd.isnull(z['adj_pred_order2']), 'positionOrder']
 
             # replace existing predictiong order value
             z['fp'] = z['adj_pred_order2'].rank(method='min', ascending=True)

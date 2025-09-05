@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import math
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import PowerTransformer
 
 
 def get_lap_rep(
@@ -21,7 +22,7 @@ def get_lap_rep(
     selection:str = 'min',
     agg_func:str = 'median',
     lap_thresh:float = None,
-    kvals:list = [2]
+    kvals:list = [2, 3]
 ):
     '''
     Returns a representative pace summary for the input driver over a
@@ -138,7 +139,7 @@ def get_driver_session_ranks(
     Obtains the lap times and associated ranks for each driver from a given 
     fp2 session.
 
-    Args:
+    Inputs:
     - round (int)
     - session (str)
     - year (int)
@@ -169,7 +170,7 @@ def get_driver_session_ranks(
     # take the max session lap time
     rep_laps.loc[pd.isnull(rep_laps['Session_Lap'])] = rep_laps['Session_Lap'].max()
 
-    rep_laps['lap_seconds_norm'] = (rep_laps['Session_Lap'] - rep_laps['Session_Lap'].mean())\
+    rep_laps['lap_seconds_norm'] = (rep_laps['Session_Lap'] - rep_laps['Session_Lap'].median())\
                                    / rep_laps['Session_Lap'].std()
     
     
@@ -184,7 +185,8 @@ def get_driver_session_ranks(
 
 
 def get_new_pred(row):
-    ratio = (row['positionOrder'] - row['Rank'])/10
+    # DEBUG - increased the scaling value requirement from 10 to 20
+    ratio = (row['positionOrder'] - row['Rank'])/20 
     if ratio * 1.96 < -2.576:
         prod = -2.576
     elif ratio * 1.96 > 2.576:
@@ -196,7 +198,8 @@ def get_new_pred(row):
 
 
 def get_new_pred_alt(row):
-    ratio = (row['positionOrder']-row['Rank'])/10
+    # DEBUG - increased the scaling value requirement from 10 to 20
+    ratio = (row['positionOrder']-row['Rank'])/20
     new_ratio = (1 + math.fabs(row['lap_seconds_norm'])) * ratio
     prod = new_ratio * 1.96
     if prod > 2.576: prod = 2.576
@@ -214,24 +217,49 @@ def recalc_fantasy_score(preds, dq_scores, dr_scores):
 
         
 def test_main(
-    predictions_file_path:str = '../../results/hungary/predictions.csv'
+    predictions_file_path:str = '../../results/monza/predictions.csv'
 ):
     preds = pd.read_csv(predictions_file_path)
-    ranks = get_driver_session_ranks(round=15, base_predictions=preds, approach='cluster', session_type='FP2')
+    ranks = get_driver_session_ranks(round=16, base_predictions=preds, approach='cluster', session_type='FP2')
     
     ex_cols = ranks.drop('Driver', axis=1).columns
     if len(set(ex_cols) - set(preds.columns)) < len(ex_cols):
         preds = preds.drop(ex_cols, axis=1)
     
-    z = pd.merge(preds, ranks, on='Driver')
+    z = pd.merge(preds, ranks, on='Driver', how='left')
     z['adj_pred_order1'] = z.apply(get_new_pred, axis=1)
     z['adj_pred_order2'] = z.apply(get_new_pred_alt, axis=1)
+
+    # if missing - just ignore the data
+    z.loc[pd.isnull(z['adj_pred_order1']), 'adj_pred_order1'] = z.loc[pd.isnull(z['adj_pred_order1']), 'positionOrder']
+    z.loc[pd.isnull(z['adj_pred_order2']), 'adj_pred_order2'] = z.loc[pd.isnull(z['adj_pred_order2']), 'positionOrder']
+
     z['new_fp_1'] = z['adj_pred_order1'].rank(method='min', ascending=True).astype(int)
     z['new_fp_2'] = z['adj_pred_order2'].rank(method='min', ascending=True).astype(int)
     z = z.sort_values(by = 'adj_pred_order2')
 
-    print(z[['Driver', 'new_fp_1', 'new_fp_2', 'positionOrder', 'adj_pred_order1', 'adj_pred_order2', 'Session_Lap', 'lap_seconds_norm']])
+    ax = z['Session_Lap'].dropna().hist()
+    fig = ax.get_figure()
+    fig.savefig("plot.png", dpi=300, bbox_inches='tight')
+
+    plt.clf()
+    pt = PowerTransformer(method='yeo-johnson')
+    tmp_series = pd.Series(pt.fit_transform(z['Session_Lap'].dropna().to_numpy().reshape(-1,1)).squeeze())
+    tmp_series = (tmp_series - tmp_series.mean())/tmp_series.std()
+    ax2 = tmp_series.dropna().hist()
+    fig2 = ax2.get_figure()
+    fig2.savefig("plot2.png", dpi=300, bbox_inches='tight')
+
+    plt.clf()
+    tmp_series = pd.Series(z['Session_Lap'] - z['Session_Lap'].median()).dropna()
+    tmp_series /= tmp_series.std()
+    print("[TEMP SERIES]: \n{}".format(tmp_series))
+    ax3 = tmp_series.dropna().hist()
+    fig3 = ax3.get_figure()
+    fig3.savefig("plot3.png", dpi=300, bbox_inches='tight')
+
+    print(z[['Driver', 'new_fp_1', 'new_fp_2', 'fp', 'positionOrder', 'adj_pred_order1', 'adj_pred_order2', 'Session_Lap', 'lap_seconds_norm']])
 
 
 if __name__ == "__main__":
-    test_main("../../results/zandfort_post_fp1_rf/predictions.csv")
+    test_main("../../results/monza/predictions.csv")

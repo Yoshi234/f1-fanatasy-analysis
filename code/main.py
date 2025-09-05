@@ -58,5 +58,5 @@ if __name__ == "__main__":
             predictions_folder = "../results/monza",
             output_feature_report= True,
             model_type = 'RF',
-            adjust_session = None # if None - it ignores the fp2 session adjustment option
+            adjust_session = 'FP2' # if None - it ignores the fp2 session adjustment option
         )

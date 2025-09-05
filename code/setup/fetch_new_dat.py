@@ -483,6 +483,7 @@ def fetch_new(
     # save resulting data
     if (not debug) and (not base_data_file is None):
         result.to_csv(base_data_file, index=False)
+        
     # fastestLap, rank, fastestLapTime, fastestLapSpeed is not 
     # useful since we can't access this before the race
     
