@@ -5,6 +5,8 @@ from modeling.models_by_window import (
 )
 from setup.fetch_new_dat import fetch_new
 import sys
+import os
+import pandas as pd
 
 if __name__ == "__main__":
     # set options
@@ -16,17 +18,25 @@ if __name__ == "__main__":
 
     if sys.argv[1] == 'fetch_true':
         # update the data
-        fetch_new(
+        data_file = '../data/clean_model_data2.csv'
+        if not 'clean_model_data2.csv' in os.listdir('../data'):
+            data_file = None
+            save_results = True
+        
+        result_data = fetch_new(
             current_date = None, 
             key = None, 
             test = False, 
             no_key = True, 
             debug = False, 
-            base_data_file = '../data/clean_model_data2.csv',
+            base_data_file = data_file,
             constructors_data_file = '../data/constructors.csv',
             drivers_data_file = '../data/drivers.csv',
             circuits_data_file = '../data/circuits.csv'
         )
+
+        if save_results:
+            result_data.to_csv('../data/clean_model_data2.csv', index = False)
         
     elif sys.argv[1] == 'eval_true': 
         eval_model(
