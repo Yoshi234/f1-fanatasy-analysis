@@ -1,6 +1,6 @@
 # import dependencies
-from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup 
+# from playwright.sync_api import sync_playwright
+# from bs4 import BeautifulSoup 
 import pandas as pd
 import re
 import numpy as np
