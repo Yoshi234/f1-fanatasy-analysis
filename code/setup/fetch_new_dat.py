@@ -76,6 +76,7 @@ Algorithm:
 from datetime import datetime
 import pandas as pd
 import fastf1
+fastf1.Cache.enable_cache("/mnt/d")
 import os
 import numpy as np
 try:
@@ -211,7 +212,7 @@ def fetch_new(
     - result (pd.DataFrame): the dataframe which results from the data pulls which
       are made to obtain the data. 
     '''
-    if 'private.txt' in os.listdir():
+    if key is None and 'private.txt' in os.listdir():
         key = 'private.txt'
 
     # read cross-ref data
@@ -224,14 +225,10 @@ def fetch_new(
     elif '.feather' in base_data_file:
         og_dat = pd.read_feather(base_data_file)
         print("[INFO]: Reading feather starter data")
-    elif 'clean_model_data2.csv' in base_data_file:
+    elif 'clean_model_data2.csv' in base_data_file and os.path.exists(base_data_file):
         og_dat = pd.read_csv(base_data_file)
     else:
-        og_dat = None # UPDATE CHECK
-
-    # TODO 7/30/2025
-    # Update the `fetch_new` function so that it can run even without
-    # the availability of `clean_model_data2.csv`
+        og_dat = None
     
     # get current datetime
     if current_date is None:
@@ -262,7 +259,6 @@ def fetch_new(
     if schedule.shape[0] == 0: 
         return og_dat
 
-    # TODO Update logic - if no og_dat available - how to set?
     if og_dat is None:
         res_id = 1
     else:
@@ -336,7 +332,6 @@ def fetch_new(
         base['ref_name'] = s1.event.EventName
         base['event_name'] = s1.event.EventName
         
-        # 
         if 'circuitId' in c1.keys():
             if len(c1['circuitId']) == 1:
                 tmp_cid = c1['circuitId'].item() 
@@ -350,7 +345,6 @@ def fetch_new(
             base['circuitId'] = np.nan
 
         # add track speed data
-        # print("[DEBUG]: {}".format(base['event_name']))
         evnt_qry = pd.DataFrame(
             {"year":[curr_yr], 
              "name":[s1.event.EventName],
@@ -424,9 +418,16 @@ def fetch_new(
 
         
         # reset column orderings
-        base['lng'] = c1['lng']
-        base['lat'] = c1['lat']
+        base['lng'] = c1['lng'].item()
+        base['lat'] = c1['lat'].item()
         base['date'] = s1.date.strftime("%Y-%m-%d")
+
+        if test:
+            print("[INFO]: Date, Latitute, and Longitude Information")
+            print("---")
+            print('latitude:',base['lat'])
+            print('longitude:',base['lng'])
+            print('date:',base['date'])
     
         if no_key==False:
             api_key = ''
@@ -441,6 +442,11 @@ def fetch_new(
             api_key=api_key,
             debug=False
         )   
+
+        if test:
+            print("[INFO]: Weather Data:")
+            print(base[['tempmin', 'humidity', 'temp']])
+
         # drop lng and lat from the dataframe
         base = base.drop(['lng', 'lat'], axis=1)    
         if full_dat is None: 
@@ -448,8 +454,6 @@ def fetch_new(
         else: 
             # concatenate new df column-wise to the full_dat for the season
             full_dat = pd.concat([full_dat, base], axis=0)
-
-        if test: break
         
     # print("{}[DEBUG]: Unique team IDs = {}{}".format(Colors.RED, full_dat[fastf1_ckey].unique(), Colors.ENDC))
     # print("[DEBUG]: full_dat keys = {} \n**(before standings applied)**".format(full_dat.keys()))
@@ -481,7 +485,7 @@ def fetch_new(
         os.mkdir("../../data")
 
     # save resulting data
-    if (not debug) and (not base_data_file is None):
+    if (not test) and (not base_data_file is None):
         result.to_csv(base_data_file, index=False)
         
     # fastestLap, rank, fastestLapTime, fastestLapSpeed is not 
@@ -499,13 +503,17 @@ if __name__ == "__main__":
     # fetch data starting from 2024
     import sys
 
+    # if no date is entered, runs in test mode for one race
     if len(sys.argv) > 1:
         date = sys.argv[1]
     else:
         date = '2025-04-10'
 
-    fetch_new(
+    test_dat = fetch_new(
+        key='private.txt',
+        no_key=False,
         current_date=date, 
         debug=False,
-        base_data_file=None
+        test=False,
+        base_data_file='../../data/clean_model_data2.csv'
     )

@@ -14,7 +14,6 @@ obtained before your account is debited. As such, please make sure
 to limit the number of records obtained via the API within a 24 hr 
 period.
 '''
-
 # load necessary packages to interface with the API
 import urllib.request
 import urllib.error
@@ -22,6 +21,7 @@ import json
 import requests
 import pandas as pd
 import numpy as np
+
 
 def format_weather_dat(w_dat):
     '''
@@ -38,6 +38,7 @@ def format_weather_dat(w_dat):
 
     # return the update weather data
     return w_dat
+
 
 def get_locations_dat(folder:str = "../data"):
     '''
@@ -60,6 +61,7 @@ def get_locations_dat(folder:str = "../data"):
     else:
         print("Error: erroneous rows created. please check merging operation")
         return merged_dat
+    
 
 def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
     '''
@@ -84,12 +86,14 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
         return loc_dat
     
     # iterate through loc_dat dataframe and obtain weather data
-    for idx, row in loc_dat.iterrows():
+    n_qry = 0
+    for idx, row in loc_dat[['lat', 'lng','date']].drop_duplicates().iterrows():
         lat = str(row['lat'])
         lng = str(row['lng'])
         date = str(row['date'])
         query = BaseURL + lat + "%2C" + lng + "/" + date + "/" + date + EndUrl
         response = requests.get(query)
+        n_qry += 1
         if debug: 
             print(f"[DEBUG]: {query}")
             print(f"[DEBUG]: {response}")
@@ -101,13 +105,23 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
             return loc_dat
         w_dat = w_dat['days'] 
         w_dict = {key:value for entry in w_dat for (key,value) in entry.items()}
+        print(w_dict)
 
-        for key in w_dict:
+        for key in w_dict.keys():
             if key in search_keys: 
-                loc_dat.loc[idx,key] = w_dict[key]
+                if key == 'preciptype': 
+                    if w_dict[key] is None:
+                        w_dict[key] = 'no_precipitation'
+                    else:
+                        w_dict[key] = w_dict[key][0]
+                        
+                loc_dat.loc[loc_dat['date']==date, key] = w_dict[key]
+    
+    print("[INFO]: N_QUERIES = {}".format(n_qry))
     
     # return location dataframe with added weather information
     return loc_dat
+
 
 def main(full_process=True):
     key = ''
@@ -127,6 +141,7 @@ def main(full_process=True):
         data = pd.read_feather("{}/races_circuits_weather.feather".format(folder))
         data = format_weather_dat(data)
         data.to_feather("{}/races_circuits_weather.feather".format(folder))
+
 
 if __name__ == "__main__":
     main(False)
