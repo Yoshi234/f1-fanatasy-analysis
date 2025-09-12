@@ -40,7 +40,8 @@ if __name__ == "__main__":
         
     elif sys.argv[1] == 'eval_true': 
         eval_model(
-            k=4
+            k=4,
+            model_type='RF'
         )
 
     if sys.argv[2] == 'fit_true':
