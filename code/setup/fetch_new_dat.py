@@ -76,7 +76,10 @@ Algorithm:
 from datetime import datetime
 import pandas as pd
 import fastf1
-fastf1.Cache.enable_cache("/mnt/d")
+EXTERNAL_CACHE=False
+if EXTERNAL_CACHE == True:
+  fastf1.Cache.enable_cache("/mnt/d")
+#fastf1.Cache.enable_cache("/mnt/d")
 import os
 import numpy as np
 try:

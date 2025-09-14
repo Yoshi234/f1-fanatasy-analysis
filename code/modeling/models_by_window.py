@@ -206,8 +206,13 @@ def get_forecast_data(
     # print("[INFO]: data keys:")
     # for key in data_window.keys():
     #     print(key)
-    
-    return data_window[full_vars] 
+
+    total_nulls = data_window[full_vars].isna().sum().sum()
+    if total_nulls > 0:
+        print(f"{Colors.RED} !!WARNING!! <--")
+        print(data_window[full_vars].isna().sum())
+        print(f"{Colors.ENDC}")
+    return data_window[full_vars].fillna(0)
 
 
 def _fit_model(
@@ -631,11 +636,16 @@ def fit_eval_window_model(
             q_res_dict = dict()
             
             for d in drivers:
-                tmp = base_results.loc[base_results[d]==1]
-                # set results in a list format
-                r_res_dict[d] = [tmp[target[1]].values[0]]
-                q_res_dict[d] = [tmp[target[0]].values[0]]
-            
+                try:
+                    tmp = base_results.loc[base_results[d]==1]
+                    # set results in a list format
+                    r_res_dict[d] = [tmp[target[1]].values[0]]
+                    q_res_dict[d] = [tmp[target[0]].values[0]]
+                except:
+                    print(Colors.RED)
+                    print(d)
+                    print(Colors.ENDC)
+                
             r_df_tmp = pd.DataFrame(r_res_dict)
             q_df_tmp = pd.DataFrame(q_res_dict)
             
@@ -735,6 +745,10 @@ def fit_eval_window_model(
         
         print_report(race_pred_dict, f'{predictions_folder}/race_report.txt')
         print_report(quali_pred_dict, f'{predictions_folder}/quali_report.txt')
+
+    #print(X2[race_features].isna().sum())
+    #print(X2[quali_features].isna().sum())
+    #print(X2.loc[pd.isnull(X2['prev_driver_points_prop'])])
 
     y1 = model1.predict(X2[race_features])
     y2 = model2.predict(X2[quali_features])
@@ -836,7 +850,11 @@ def fit_eval_window_model(
 
         if fp2_adjust == True:
             # use standard errors and fp2 data to update predictions
-            ranks = get_driver_session_ranks(round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
+            try:
+                ranks = get_driver_session_ranks(round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
+            except:
+                ranks = get_driver_session_ranks(round=pred_round, session_type='FP1', base_predictions=preds, approach='cluster')
+            
             z = pd.merge(preds, ranks, on='Driver', how='left')
             z['adj_pred_order2'] = z.apply(get_new_pred_alt, axis=1)
 
@@ -848,6 +866,9 @@ def fit_eval_window_model(
 
             z = z.sort_values(by='fp')
             z.to_csv(f'{predictions_folder}/predictions.csv', index=False)
+
+            if eval_mode == True:
+                preds = z
 
 
     if plot_model_coef == True:
@@ -878,20 +899,24 @@ def fit_eval_window_model(
         round_subset = all_data.loc[all_data['round']==pred_round, ['driverId', 'positionOrder', 'grid']].rename(
             columns={'positionOrder': 'positionOrder_true', 'grid': 'grid_true'}
         )  
+        tmp = pd.merge(drivers_db[['driverId', 'code']], preds, how='inner', left_on='code', right_on='Driver')
 
-        for d in drivers:
+        tmp = tmp.rename(columns={"sp": "sp_pred", "fp": "fp_pred"})
+        tmp = tmp[['driverId', 'sp_pred', 'fp_pred']]
+
+        '''for d in drivers:
             id_val = float(d.split("_")[-1])
             driver_id = drivers_db.loc[drivers_db['driverId']==id_val, 'driverId'].values[0]
             X2.loc[X2[d]==1.0, 'driverId'] = driver_id
 
-        output_vals = X2[['driverId', target[0], target[1]]].rename(
+        output_vals = preds[['driverId', target[0], target[1]]].rename(
             columns={target[0]: 'positionOrder_pred', target[1]: 'grid_pred'}
         )
         output_vals['sp_pred'] = output_vals['grid_pred'].rank(method='min').astype(int)
-        output_vals['fp_pred'] = output_vals['positionOrder_pred'].rank(method='min').astype(int)
+        output_vals['fp_pred'] = output_vals['positionOrder_pred'].rank(method='min').astype(int)'''
 
         ret_df = pd.merge(
-            left=output_vals, 
+            left=tmp, 
             right=round_subset, 
             how='left', 
             on='driverId', 
@@ -1260,7 +1285,8 @@ def eval_model(
     k = 5,
     year = 2025,
     result_folder = '../results/model_metrics',
-    output_feature_report = False
+    output_feature_report = False,
+    model_type = 'RF'
 ):
     '''
     Runs model evaluation for the configured modeling approach
@@ -1296,7 +1322,7 @@ def eval_model(
             vars = vars, 
             year = year, 
             k = k, 
-            std_errors=False,
+            std_errors=True,
             round = cur_round, 
             target = ['positionOrder', 'grid'], 
             predictions_folder = result_folder, 
@@ -1307,7 +1333,9 @@ def eval_model(
             dest_file = f"{result_folder}/lasso_coeff.csv",
             eval_mode = True,
             output_feature_report= output_feature_report,
-            fp2_adjust=True
+            fp2_adjust=True,
+            model_type=model_type,
+            boot_trials = 30
         )
         if all_preds is None:
             all_preds = preds
@@ -1322,10 +1350,10 @@ def eval_model(
 
     all_preds = all_preds.dropna()
     
-    r2_race = r2_score(all_preds['positionOrder_true'], all_preds['positionOrder_pred'])
+    '''r2_race = r2_score(all_preds['positionOrder_true'], all_preds['positionOrder_pred'])
     r2_quali = r2_score(all_preds['grid_true'], all_preds['grid_pred'])
 
-    print("[R2-Cont.  RESULTS]: Race: {} | Quali: {}".format(r2_race, r2_quali))
+    print("[R2-Cont.  RESULTS]: Race: {} | Quali: {}".format(r2_race, r2_quali))'''
 
     r2_race_b = r2_score(all_preds['positionOrder_true'], all_preds['fp_pred'])
     r2_quali_b = r2_score(all_preds['grid_pred'], all_preds['sp_pred'])
@@ -1333,7 +1361,7 @@ def eval_model(
     print("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
 
     with open(f"{result_folder}/metrics.txt", 'w') as f:
-        f.write("[R2-Cont.  RESULTS]: Race: {} | Quali: {}\n".format(r2_race, r2_quali))
+        #f.write("[R2-Cont.  RESULTS]: Race: {} | Quali: {}\n".format(r2_race, r2_quali))
         f.write("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
 
 
