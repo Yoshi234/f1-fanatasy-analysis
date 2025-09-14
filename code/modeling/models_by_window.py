@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+import os
 
 try:
     from ISLP.models import (ModelSpec as MS, summarize)
@@ -6,9 +8,12 @@ try:
     from ISLP import confusion_table
 except:
     print("[ERROR]: MISSING ISLP and STATSMODELS")
-import numpy as np
+
+
 import fastf1
-import os
+EXTERNAL_CACHE = True
+if EXTERNAL_CACHE:
+    fastf1.Cache.enable_cache("/mnt/d")
 
 from sklearn.metrics import f1_score, r2_score
 from sklearn.linear_model import LassoCV
@@ -622,7 +627,7 @@ def fit_eval_window_model(
             )[0]
 
             X2['prev_driver_position'] = X2['prev_driver_position'].fillna(20)
-            X2 = X2.fillna(0)
+            X2 = X2.fillna(value={'prev_driver_points':0, 'prev_driver_position':10})
 
             y1 = model1.predict(X2[race_features])
             y2 = model2.predict(X2[quali_features])
@@ -1356,7 +1361,7 @@ def eval_model(
     print("[R2-Cont.  RESULTS]: Race: {} | Quali: {}".format(r2_race, r2_quali))'''
 
     r2_race_b = r2_score(all_preds['positionOrder_true'], all_preds['fp_pred'])
-    r2_quali_b = r2_score(all_preds['grid_pred'], all_preds['sp_pred'])
+    r2_quali_b = r2_score(all_preds['grid_true'], all_preds['sp_pred'])
 
     print("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
 
