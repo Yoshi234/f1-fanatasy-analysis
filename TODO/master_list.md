@@ -1,3 +1,16 @@
+## 9/14/2025
+
+Errors with model evaluation:
+- imola gp: driverId 865 is printed as missing for each trial
+  - somehow, the `drivers` list returned by `get_encoded_data()` is 
+    obtaining colapinto iformation
+  - Then, at the spanish grand prix, doohan is missing from the 
+    drivers pool. This is expected since he did not have a driver
+    after the spanish grand prix.
+- actually, the main reason errors seem to be popping up is because
+  somehow, 'Doohan' is retained as part of the `drivers` list, and this 
+  causes errors to show up
+
 ## 5/4/2025
 
 1. I discovered a very strange bug today. I loaded up the data from 

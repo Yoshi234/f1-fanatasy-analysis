@@ -15,7 +15,7 @@ EXTERNAL_CACHE = True
 if EXTERNAL_CACHE:
     fastf1.Cache.enable_cache("/mnt/d")
 
-from sklearn.metrics import f1_score, r2_score
+from sklearn.metrics import f1_score, r2_score, accuracy_score
 from sklearn.linear_model import LassoCV
 from sklearn.tree import DecisionTreeRegressor, plot_tree
 from sklearn.ensemble import RandomForestRegressor
@@ -130,11 +130,7 @@ def get_forecast_data(
     c1 = circuits.loc[circuits['location']==event['Location'].item()]
     
     # 1 get subset of data frame from previous race and use that data
-    # to perform updating
-    # print("[INFO]: round = {}".format(rnd))
     standings = get_standings_data(rnd, year, drivers_data)
-    # print("[INFO]: standings.shape = {}".format(standings.shape))
-    # print("[INFO]: standings.keys() = {}".format(standings.keys()))
     
     # 2 get 
     rename_cols = {'cum_points':'prev_driver_points', 
@@ -161,8 +157,6 @@ def get_forecast_data(
         base.loc[base['DriverId']==driver, 'driverId']=d_id_val
     
     # get constructor Ids for eachh constructor and team id
-    # print("--- Unique TeamId Values ---")
-    # print(base['TeamId'].unique())
     for constructor in base['TeamId'].unique():
         construct_x = constructors.loc[constructors['constructorRef']==constructor]
         if len(construct_x['constructorRef']) == 1:
@@ -172,9 +166,6 @@ def get_forecast_data(
         base.loc[base['TeamId']==constructor, 'constructorId']=c_id_val
     
     # set event query and get the track speed data 
-    print(event)
-    print(c1) # DEBUG - multi/single item event query for circuit?
-
     evnt_qry = pd.DataFrame(
         {"year":[year-1], # get the most recent year's speed data
          "name":[event['EventName'].item()],
@@ -212,10 +203,14 @@ def get_forecast_data(
     # for key in data_window.keys():
     #     print(key)
 
-    total_nulls = data_window[full_vars].isna().sum().sum()
+    sub_data = data_window[full_vars]
+    total_nulls = sub_data.isna().sum().sum()
+
+    null_driver_val = sub_data.loc[pd.isnull(sub_data[drivers]).any(axis=1)].iloc[0].idxmax()
+
     if total_nulls > 0:
         print(f"{Colors.RED} !!WARNING!! <--")
-        print(data_window[full_vars].isna().sum())
+        print(sub_data[drivers].T)
         print(f"{Colors.ENDC}")
     return data_window[full_vars].fillna(0)
 
@@ -1360,10 +1355,10 @@ def eval_model(
 
     print("[R2-Cont.  RESULTS]: Race: {} | Quali: {}".format(r2_race, r2_quali))'''
 
-    r2_race_b = r2_score(all_preds['positionOrder_true'], all_preds['fp_pred'])
-    r2_quali_b = r2_score(all_preds['grid_true'], all_preds['sp_pred'])
+    r2_race_b = accuracy_score(all_preds['positionOrder_true'], all_preds['fp_pred'])
+    r2_quali_b = accuracy_score(all_preds['grid_true'], all_preds['sp_pred'])
 
-    print("[R2-Ranked RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
+    print("[Accuracy RESULTS]: Race: {} | Quali: {}".format(r2_race_b, r2_quali_b))
 
     with open(f"{result_folder}/metrics.txt", 'w') as f:
         #f.write("[R2-Cont.  RESULTS]: Race: {} | Quali: {}\n".format(r2_race, r2_quali))

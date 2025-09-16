@@ -47,7 +47,7 @@ def get_standings_data(cur_round:int, year:int, drivers_pth:str='../../data/driv
     # check if the DriverId rating is available
     driver_key = 'DriverId'
     if len(standings['DriverId'].unique()) > 2: 
-        print('len(standings[DriverId]) = {}'.format(len(standings['DriverId'])))
+        # print('len(standings[DriverId]) = {}'.format(len(standings['DriverId'])))
         driver_key = 'DriverId'
         driver_loc_key = 'driverRef'
     elif len(standings['FullName'].unique()) > 2:

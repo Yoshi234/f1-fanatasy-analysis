@@ -88,7 +88,7 @@ def get_lap_rep(
                                     /lap_data['lap_seconds'].std()
         
         current_score = 0
-        print("[INFO]: driver = \n{}".format(lap_data['Driver'].unique()))
+        # print("[INFO]: driver = \n{}".format(lap_data['Driver'].unique()))
         fit_array = lap_data['lap_seconds_norm'].dropna().to_numpy().reshape(-1,1)
         
         if len(fit_array) == 0: # return a maximum value if no laps were recorded
@@ -117,7 +117,7 @@ def get_lap_rep(
                 lap_data['lap_cluster'] = kmeans.labels_
         
         # debug remove this
-        print("[INFO]: Lap Data after Clustering Laps\n{}".format(lap_data))
+        # print("[INFO]: Lap Data after Clustering Laps\n{}".format(lap_data))
             
         summary_stats = lap_data.groupby('lap_cluster')['lap_seconds'].agg([agg_func])
         if selection == 'min':
@@ -253,12 +253,12 @@ def test_main(
     plt.clf()
     tmp_series = pd.Series(z['Session_Lap'] - z['Session_Lap'].median()).dropna()
     tmp_series /= tmp_series.std()
-    print("[TEMP SERIES]: \n{}".format(tmp_series))
+    # print("[TEMP SERIES]: \n{}".format(tmp_series))
     ax3 = tmp_series.dropna().hist()
     fig3 = ax3.get_figure()
     fig3.savefig("plot3.png", dpi=300, bbox_inches='tight')
 
-    print(z[['Driver', 'new_fp_1', 'new_fp_2', 'fp', 'positionOrder', 'adj_pred_order1', 'adj_pred_order2', 'Session_Lap', 'lap_seconds_norm']])
+    # print(z[['Driver', 'new_fp_1', 'new_fp_2', 'fp', 'positionOrder', 'adj_pred_order1', 'adj_pred_order2', 'Session_Lap', 'lap_seconds_norm']])
 
 
 if __name__ == "__main__":
