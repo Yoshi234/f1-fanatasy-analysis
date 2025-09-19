@@ -1,1 +1,8 @@
 fastf1
+scikit-learn
+treeinterpreter
+tqdm
+matplotlib
+seaborn
+requests
+imbalanced-learn
