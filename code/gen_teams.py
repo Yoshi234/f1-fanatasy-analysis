@@ -262,7 +262,7 @@ def update_price_values(
     B_drivers,
     A_constructors,
     B_constructors,
-    std_cols = ['driver', 'price/$', 'R13 Pts', 'R14 Pts', 'constructor']
+    std_cols = ['driver', 'price/$', 'R14 Pts', 'R15 Pts', 'constructor']
 ):
     '''
     Updates price data based on the outputs from f1fantasytools
@@ -376,7 +376,7 @@ if __name__ == "__main__":
     # please update this
     driversA, driversB, constructorsA, constructorsB = copilot_price_data_output()
 
-    location = "zandfort_rf"
+    location = "monza"
     results_folder = "../results"
     assets_file = "josh_fantasytools_assets.csv"
     team = 'team2'
@@ -409,13 +409,13 @@ if __name__ == "__main__":
 
     teams_info = {
         'team1': {
-            'cur_team': frozenset(['HUL', 'ALO', 'STR', 'PIA', 'BEA', 'MCL', 'KCK']),
-            'surplus': 15.9,
-            'max_dif': 3
+            'cur_team': frozenset(['PIA', 'ALO', 'BOR', 'NOR', 'LAW', 'MCL', 'KCK']),
+            'surplus': 2.3,
+            'max_dif': 10
         },
         'team2': {
             'cur_team': frozenset(['BOR', 'HAD', 'LAW', 'PIA', 'ALO', 'FER', 'MCL']),
-            'surplus': 100, 
+            'surplus': 0.1, 
             'max_dif': 10
         }
     }

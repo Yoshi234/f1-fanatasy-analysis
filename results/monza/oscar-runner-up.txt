@@ -1,0 +1,65 @@
+[INFO]: generating team combinations = 2.888021469116211 s
+[INFO]: Max Team Budget = 122.99999999999999
+-------------------- Best Predicted Average Value --------------------
+team_comps:		frozenset({'KCK', 'ALO', 'MCL', 'ALB', 'HAD', 'BOR', 'PIA'})
+price:		101.80000000000001
+score:		194.39640000000003
+max_score:		37.2
+projected_gain:		3.6
+pred_score:		131.0
+weight:		0.887
+ensemble_score:		162.6982
+centered_pred:		1.8883631706887616
+centered_score:		1.6216355327316607
+centered_gain:		3.0252893550351976
+avg_value:		2.463827826113783
+pred_avg_value:		2.570518881296623
+team_diffs:		2
+
+-------------------- Best Predicted Score Value --------------------
+team_comps:		frozenset({'KCK', 'COL', 'ALO', 'MCL', 'NOR', 'HAD', 'PIA'})
+price:		120.7
+score:		nan
+max_score:		37.2
+projected_gain:		2.4
+pred_score:		152.0
+weight:		0.887
+ensemble_score:		nan
+centered_pred:		2.2869944084906866
+centered_score:		nan
+centered_gain:		1.8946659379761936
+avg_value:		nan
+pred_avg_value:		2.051597326181991
+team_diffs:		2
+
+-------------------- Best Avg Fantasy Value --------------------
+team_comps:		frozenset({'KCK', 'STR', 'ALO', 'MCL', 'HAD', 'BOR', 'PIA'})
+price:		100.30000000000001
+score:		204.19639999999998
+max_score:		37.2
+projected_gain:		3.6
+pred_score:		126.0
+weight:		0.887
+ensemble_score:		165.0982
+centered_pred:		1.793450971212113
+centered_score:		1.7865696943161915
+centered_gain:		3.0252893550351976
+avg_value:		2.529801490747595
+pred_avg_value:		2.5325540015059635
+team_diffs:		2
+
+-------------------- Best Avg Fantasy Score --------------------
+team_comps:		frozenset({'LAW', 'HUL', 'ALO', 'MCL', 'FER', 'BOR', 'PIA'})
+price:		119.69999999999999
+score:		249.9964
+max_score:		37.2
+projected_gain:		1.0999999999999996
+pred_score:		110.0
+weight:		0.887
+ensemble_score:		179.9982
+centered_pred:		1.4897319328868366
+centered_score:		2.557384449476554
+centered_gain:		0.6698239028289392
+avg_value:		1.4248481214879851
+pred_avg_value:		0.9977871148520983
+team_diffs:		2
