@@ -15,6 +15,25 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import PowerTransformer
 
 
+def agg_lap_rep_selection(
+):
+    '''
+    Performs clustering over all driver laps and then 
+    picks then follows this procedure:
+    1. look at the cluster with the fastest mean lap first. 
+       for each driver, pick the average of their laps in 
+       this cluster (or somet other summary statistic)
+       and take that as their "representative" lap. 
+    2. For each driver with no lap in this cluster, 
+       look at the next fastest cluster, and aggregate
+       based on laps from that cluster - take the mean/
+       summary stat for that cluster as the representative
+       lap. If not available, continue until all clusters
+       have been exhausted. If no representative lap is 
+       available, ignore this driver.
+    '''
+
+
 def get_lap_rep(
     session_obj = None,
     driver_code:str = 'STR',
@@ -30,7 +49,8 @@ def get_lap_rep(
     this procedure is built to use the median lap time of the fastest
     stint for the fp2 session of a given weekend
 
-    Parameters:
+    Inputs:
+    -------
     - session (fastf1.Session.laps): The laps for a given session
     - driver_code (str): The driver code for the desired driver
     - race_round (int): The integer of the race round
@@ -52,7 +72,8 @@ def get_lap_rep(
       as part fo the representative session lap data. By default, this is set to 
       1.1, or 110% of the quickest lap time for the driver.
 
-    Returns
+    Outputs:
+    --------
     - lap_rep (float): a float encoded lap time (in seconds) of the representative
       pace of the input driver for the given session
     '''
