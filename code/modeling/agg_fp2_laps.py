@@ -15,6 +15,71 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import PowerTransformer
 
 
+def agg_lap_rep_selection(
+    session_obj,
+    kvals=[2,3]
+) -> pd.DataFrame:
+    '''
+    Performs clustering over all driver laps and then 
+    picks representative times for each driver
+    based on the following procedure:
+    1. look at the cluster with the fastest mean lap first. 
+       for each driver, pick the average of their laps in 
+       this cluster (or somet other summary statistic)
+       and take that as their "representative" lap. 
+    2. For each driver with no lap in this cluster, 
+       look at the next fastest cluster, and aggregate
+       based on laps from that cluster - take the mean/
+       summary stat for that cluster as the representative
+       lap. If not available, continue until all clusters
+       have been exhausted. If no representative lap is 
+       available, ignore this driver.
+
+    Inputs:
+    -------
+    - session_obj (fastf1.session): the fastf1.session object you want
+      to query lap data from
+    - kvals (list[int]): the different number of clusters to try with
+      silhouette analysis to choose the best value
+    '''
+    full_laps = session_obj.laps
+
+    # get seconds format of lap times for all drivers
+    full_laps.loc[:,'lap_seconds'] = full_laps['LapTime'].dt.total_seconds() # convert to seconds (float)
+    full_laps['lap_seconds_norm'] = (full_laps['lap_seconds'] - full_laps['lap_seconds'].mean())\
+                                /full_laps['lap_seconds'].std()
+    
+    current_score = 0
+    fit_array = full_laps['lap_seconds_norm'].dropna().to_numpy().reshape(-1,1)
+    
+    if len(fit_array) == 0: # return a null value if no laps were recorded
+        return np.nan
+    
+    elif len(fit_array) == 1:
+        return fit_array[0]
+    
+    for i in range(len(kvals)):
+        kmeans = KMeans(
+            n_clusters = kvals[i],
+            random_state=42,
+            n_init='auto'
+        ).fit(fit_array)
+        try:
+            s_score = silhouette_score(fit_array, kmeans.labels_)
+        except Exception as e:
+            print('[ERROR]: fit array = \n{}'.format(fit_array))
+            print('[FULL ERROR]: {}'.format(e))
+            full_laps['lap_cluster'] = kmeans.labels_
+            s_score = 0
+        
+        if s_score > current_score:
+            current_score = s_score
+            full_laps['lap_cluster'] = kmeans.labels_
+    
+    # perform analysis over end data
+
+
+
 def get_lap_rep(
     session_obj = None,
     driver_code:str = 'STR',
@@ -30,7 +95,8 @@ def get_lap_rep(
     this procedure is built to use the median lap time of the fastest
     stint for the fp2 session of a given weekend
 
-    Parameters:
+    Inputs:
+    -------
     - session (fastf1.Session.laps): The laps for a given session
     - driver_code (str): The driver code for the desired driver
     - race_round (int): The integer of the race round
@@ -52,7 +118,8 @@ def get_lap_rep(
       as part fo the representative session lap data. By default, this is set to 
       1.1, or 110% of the quickest lap time for the driver.
 
-    Returns
+    Outputs:
+    --------
     - lap_rep (float): a float encoded lap time (in seconds) of the representative
       pace of the input driver for the given session
     '''
@@ -133,19 +200,23 @@ def get_driver_session_ranks(
     session_type = 'FP2', 
     year = 2025,
     base_predictions = None,
-    approach = 'quantile'
+    approach = 'quantile',
+    use_i_clusters = False
 ):
     '''
     Obtains the lap times and associated ranks for each driver from a given 
     fp2 session.
 
     Inputs:
+    -------
     - round (int)
     - session (str)
     - year (int)
     - base_predictions (pd.DataFrame or path[str]): Either the output predictions
       dataframe itself, or the path to the dataframe to read for predictions
     - approach (str): the approach to use for grouping laps. options=['stint', 'quantile', 'cluster']
+    - use_i_clusters (boolean): If True, clusters lap over individual drivers instead of all together
+      If false, will use the `agg_lap_rep_selection()` function for this purpose
     '''
     if base_predictions is None: 
         print("[ERROR]: No predictions input is provided")
@@ -157,16 +228,19 @@ def get_driver_session_ranks(
     session = fastf1.get_session(year=year, gp=round, identifier=session_type)
     session.load() # load session data
 
-    driver = []
-    rep_lap = []
-    for driver_code in base_predictions['Driver'].unique():
-        driver.append(driver_code)
-        rep_lap.append(get_lap_rep(session, driver_code, agg_func='mean', approach=approach, lap_thresh=1.1))
-    
-    rep_laps = pd.DataFrame({
-        "Driver": driver, 
-        "Session_Lap": rep_lap
-    })
+    if use_i_clusters:
+        driver = []
+        rep_lap = []
+        for driver_code in base_predictions['Driver'].unique():
+            driver.append(driver_code)
+            rep_lap.append(get_lap_rep(session, driver_code, agg_func='mean', approach=approach, lap_thresh=1.1))
+        
+        rep_laps = pd.DataFrame({
+            "Driver": driver, 
+            "Session_Lap": rep_lap
+        })
+    else:
+        rep_laps = agg_lap_rep_selection(session)
     # take the max session lap time
     rep_laps.loc[pd.isnull(rep_laps['Session_Lap'])] = rep_laps['Session_Lap'].max()
 
