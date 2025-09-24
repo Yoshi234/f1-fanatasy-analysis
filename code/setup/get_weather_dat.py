@@ -21,6 +21,7 @@ import json
 import requests
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 def format_weather_dat(w_dat):
@@ -75,10 +76,12 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
     See https://gitlab.com/kikefranssen/thesis_kf_f1/-/blob/main/1_load_weather.py?ref_type=heads
     for the code which is referenced here
     '''
+    day_keys = ['tempmax', 'tempmin', 'precipcover']
+    hr_keys = ['temp', 'dew', 'humidity', 'precip', 'preciptype', 'windspeed', 'winddir']
     search_keys = ['tempmax','tempmin','temp','dew','humidity','precip','precipcover','preciptype','windspeed','winddir']
     APIkey = api_key
     BaseURL = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
-    EndUrl = f"?unitGroup=metric&elements=datetime%2Ctempmax%2Ctempmin%2Ctemp%2Cdew%2Chumidity%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Cwindspeed%2Cwinddir%2Cvisibility&include=days&key={APIkey}&contentType=json"
+    EndUrl = f"?unitGroup=metric&elements=datetime%2Ctempmax%2Ctempmin%2Ctemp%2Cdew%2Chumidity%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Cwindspeed%2Cwinddir%2Cvisibility&include=hours&key={APIkey}&contentType=json&timezone=Z"
     
     if api_key is None:
         print("[ERROR]: Missing weather data for event {}".format(loc_dat['event_name'].unique()[0]))
@@ -91,7 +94,13 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
         lat = str(row['lat'])
         lng = str(row['lng'])
         date = str(row['date'])
-        query = BaseURL + lat + "%2C" + lng + "/" + date + "/" + date + EndUrl
+        dt_object = datetime.fromisoformat(date)
+        dt_hr = dt_object.strftime("%H:%M:%S")
+
+        print("[INFO]: DATE = {}".format(dt_object.strftime("%Y-%m-%d %H:%M:%S")))
+        print("[INFO]: HOUR = {}".format(dt_hr))
+
+        query = BaseURL + lat + "%2C" + lng + "/" + date + "/" + EndUrl
         response = requests.get(query)
         n_qry += 1
         if debug: 
@@ -103,19 +112,34 @@ def get_weather_dat(loc_dat:pd.DataFrame, api_key=None, debug=False):
             print("[ERROR]: Missing data for event {}".format(loc_dat['event_name'].unique()[0]))
             loc_dat[search_keys] = np.nan
             return loc_dat
+
         w_dat = w_dat['days'] 
         w_dict = {key:value for entry in w_dat for (key,value) in entry.items()}
         print(w_dict)
 
-        for key in w_dict.keys():
+        ## IN PROGRESS ##
+        final_dict = dict()
+
+        # get the daily information
+        for key in day_keys:
+            final_dict[key] = w_dict[key]  
+        
+        for hr in w_dict['hours']:
+          if hr['datetime'] == dt_hr:
+              for key in hr_keys:
+                  final_dict[key] = hr[key]
+
+        print('FINAL DICT\n',final_dict)
+
+        for key in final_dict.keys():
             if key in search_keys: 
                 if key == 'preciptype': 
-                    if w_dict[key] is None:
-                        w_dict[key] = 'no_precipitation'
+                    if final_dict[key] is None:
+                        final_dict[key] = 'no_precipitation'
                     else:
-                        w_dict[key] = w_dict[key][0]
+                        final_dict[key] = final_dict[key][0]
                         
-                loc_dat.loc[loc_dat['date']==date, key] = w_dict[key]
+                loc_dat.loc[loc_dat['date']==date, key] = final_dict[key]
     
     print("[INFO]: N_QUERIES = {}".format(n_qry))
     

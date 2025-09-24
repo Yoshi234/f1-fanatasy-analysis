@@ -79,7 +79,7 @@ import fastf1
 EXTERNAL_CACHE=False
 if EXTERNAL_CACHE == True:
   fastf1.Cache.enable_cache("/mnt/d")
-#fastf1.Cache.enable_cache("/mnt/d")
+
 import os
 import numpy as np
 try:
@@ -301,6 +301,12 @@ def fetch_new(
         s1.load(telemetry=False, weather=False)
         base = s1.results
 
+        # match the base date to the round number scheduled time in UTC format
+        base['date'] = schedule.loc[schedule['RoundNumber']==record['RoundNumber'], 'Session5Date'].values[0]
+        base['date'] = pd.to_datetime(base['date'], utc=True).\
+                          dt.tz_localize(None).\
+                          dt.strftime("%Y-%m-%dT%H:%M:%S")
+
         if base['DriverId'].nunique() < base.shape[0]:
             print("[ERROR]: Data not available for round {}".format(record['RoundNumber']))
             exit()
@@ -418,12 +424,10 @@ def fetch_new(
                     base.loc[base[fastf1_ckey]==construct, 'constructorId']=int(construct_x['constructorId'].values[0])
             else:
                 print("{}[INFO]: add {} info to the constructors.csv file{}".format(Colors.RED, construct, Colors.ENDC))
-
         
         # reset column orderings
         base['lng'] = c1['lng'].item()
         base['lat'] = c1['lat'].item()
-        base['date'] = s1.date.strftime("%Y-%m-%d")
 
         if test:
             print("[INFO]: Date, Latitute, and Longitude Information")
@@ -518,5 +522,8 @@ if __name__ == "__main__":
         current_date=date, 
         debug=False,
         test=False,
-        base_data_file='../../data/clean_model_data2.csv'
+        base_data_file=None
     )
+
+    print(test_dat.columns)
+    print(test_dat[['round', 'tempmin', 'tempmax', 'temp', 'precip']])

@@ -18,6 +18,7 @@ if __name__ == "__main__":
 
     if sys.argv[1] == 'fetch_true':
         # update the data
+        save_results = False
         data_file = '../data/clean_model_data2.csv'
         if not 'clean_model_data2.csv' in os.listdir('../data'):
             data_file = None
@@ -61,12 +62,12 @@ if __name__ == "__main__":
                 'num_med_corners'
             ],
             start_data = '../data/clean_model_data2.csv',
-            pred_round = 16,
-            k = 5,
+            pred_round = 17,
+            k = 4,
             year = 2025,
             std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/monza",
+            predictions_folder = "../results/baku",
             output_feature_report= True,
             model_type = 'RF',
             adjust_session = 'FP2' # if None - it ignores the fp2 session adjustment option

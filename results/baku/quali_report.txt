@@ -1,0 +1,235 @@
+[DRIVER]: VER [PRED]: [[4.09]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop             1.419388      -4.776337
+driverId_846.0-num_fast_corners    -0.229416      -0.867529
+driverId_830.0-strt_len_median      4.358899      -0.214961
+driverId_844.0-num_fast_corners    -0.229416      -0.140069
+driverId_847.0-num_slow_corners    -0.229416      -0.071432
+driverId_1.0-num_fast_corners      -0.229416      -0.070170
+driverId_842.0-num_slow_corners    -0.229416      -0.022951
+driverId_859.0-num_fast_corners    -0.229416       0.002045
+
+[DRIVER]: NOR [PRED]: [[4.78]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop             2.091430      -6.591784
+driverId_844.0-num_fast_corners    -0.229416      -0.161221
+driverId_847.0-num_slow_corners    -0.229416      -0.083799
+driverId_830.0-strt_len_median     -0.229416      -0.072738
+driverId_1.0-num_fast_corners      -0.229416      -0.037149
+driverId_842.0-num_slow_corners    -0.229416      -0.022951
+driverId_859.0-num_fast_corners    -0.229416       0.002045
+driverId_846.0-num_fast_corners     4.358899       1.496192
+
+[DRIVER]: PIA [PRED]: [[2.85]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop             2.362414      -6.184339
+driverId_846.0-num_fast_corners    -0.229416      -0.832777
+driverId_844.0-num_fast_corners    -0.229416      -0.133021
+driverId_847.0-num_slow_corners    -0.229416      -0.125895
+driverId_830.0-strt_len_median     -0.229416      -0.075545
+driverId_1.0-num_fast_corners      -0.229416      -0.032210
+driverId_842.0-num_slow_corners    -0.229416      -0.017615
+
+[DRIVER]: LEC [PRED]: [[6.33]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop             0.747347      -3.134090
+driverId_846.0-num_fast_corners    -0.229416      -0.463193
+driverId_1.0-num_fast_corners      -0.229416      -0.339946
+driverId_842.0-num_slow_corners    -0.229416      -0.146759
+driverId_807.0-strt_len_median     -0.229416      -0.054153
+driverId_830.0-strt_len_median     -0.229416      -0.000671
+driverId_859.0-num_fast_corners    -0.229416       0.060405
+driverId_847.0-num_slow_corners    -0.229416       0.071985
+driverId_844.0-num_fast_corners     4.358899       0.085017
+
+[DRIVER]: RUS [PRED]: [[4.28]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop             1.072528      -5.152572
+driverId_846.0-num_fast_corners    -0.229416      -0.831468
+driverId_844.0-num_fast_corners    -0.229416      -0.167408
+driverId_1.0-num_fast_corners      -0.229416      -0.074450
+driverId_842.0-num_slow_corners    -0.229416      -0.026070
+driverId_807.0-strt_len_median     -0.229416      -0.006120
+driverId_830.0-strt_len_median     -0.229416       0.025940
+driverId_847.0-num_slow_corners     4.358899       0.260744
+
+[DRIVER]: HAM [PRED]: [[12.07]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.290973
+driverId_807.0-strt_len_median     -0.229416      -0.161452
+driverId_846.0-num_fast_corners    -0.229416      -0.140724
+driverId_844.0-num_fast_corners    -0.229416      -0.088764
+driverId_830.0-strt_len_median     -0.229416       0.008431
+driverId_847.0-num_slow_corners    -0.229416       0.013711
+driverId_859.0-num_fast_corners    -0.229416       0.126140
+prev_driver_points_prop             0.194538       0.287031
+driverId_1.0-num_fast_corners       4.358899       2.065196
+
+[DRIVER]: ALB [PRED]: [[13.17]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.329767
+driverId_807.0-strt_len_median     -0.229416      -0.203077
+driverId_1.0-num_fast_corners      -0.229416      -0.099964
+driverId_846.0-num_fast_corners    -0.229416      -0.058208
+driverId_844.0-num_fast_corners    -0.229416      -0.052029
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.136782
+prev_driver_points_prop            -0.163161       3.502802
+
+[DRIVER]: BOR [PRED]: [[13.62980952]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.453567
+driverId_807.0-strt_len_median     -0.229416      -0.148634
+driverId_1.0-num_fast_corners      -0.229416      -0.143253
+driverId_844.0-num_fast_corners    -0.229416      -0.014796
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.180434
+prev_driver_points_prop            -0.726809       3.947526
+
+[DRIVER]: ANT [PRED]: [[7.22]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop            -0.249876      -2.074639
+driverId_807.0-strt_len_median     -0.229416      -0.415397
+driverId_842.0-num_slow_corners    -0.229416      -0.335933
+driverId_1.0-num_fast_corners      -0.229416      -0.275397
+driverId_846.0-num_fast_corners    -0.229416      -0.058208
+driverId_844.0-num_fast_corners    -0.229416      -0.050957
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.157070
+
+[DRIVER]: HAD [PRED]: [[11.88]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_859.0-num_fast_corners     4.358899      -1.752781
+driverId_842.0-num_slow_corners    -0.229416      -0.358543
+driverId_807.0-strt_len_median     -0.229416      -0.309158
+driverId_1.0-num_fast_corners      -0.229416      -0.163559
+driverId_844.0-num_fast_corners    -0.229416      -0.018146
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+prev_driver_points_prop            -0.520861       4.220090
+
+[DRIVER]: SAI [PRED]: [[11.39666667]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.443638
+driverId_807.0-strt_len_median     -0.229416      -0.148634
+driverId_1.0-num_fast_corners      -0.229416      -0.143253
+driverId_844.0-num_fast_corners    -0.229416      -0.014796
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.169349
+prev_driver_points_prop            -0.781006       1.715540
+
+[DRIVER]: BEA [PRED]: [[11.39666667]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.443638
+driverId_807.0-strt_len_median     -0.229416      -0.148634
+driverId_1.0-num_fast_corners      -0.229416      -0.143253
+driverId_844.0-num_fast_corners    -0.229416      -0.014796
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.169349
+prev_driver_points_prop            -0.770166       1.715540
+
+[DRIVER]: TSU [PRED]: [[14.33333333]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.407880
+driverId_1.0-num_fast_corners      -0.229416      -0.145787
+driverId_807.0-strt_len_median     -0.229416      -0.142149
+driverId_844.0-num_fast_corners    -0.229416      -0.017587
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.154482
+prev_driver_points_prop            -0.856881       4.630157
+
+[DRIVER]: LAW [PRED]: [[6.94344444]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+prev_driver_points_prop            -0.705130      -2.751538
+driverId_842.0-num_slow_corners    -0.229416      -0.459025
+driverId_807.0-strt_len_median     -0.229416      -0.153418
+driverId_1.0-num_fast_corners      -0.229416      -0.143253
+driverId_844.0-num_fast_corners    -0.229416      -0.022625
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.211206
+
+[DRIVER]: OCO [PRED]: [[10.84]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.555272
+driverId_807.0-strt_len_median     -0.229416      -0.173541
+driverId_1.0-num_fast_corners      -0.229416      -0.146504
+driverId_844.0-num_fast_corners    -0.229416      -0.022625
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.297708
+prev_driver_points_prop            -0.661773       1.178136
+
+[DRIVER]: GAS [PRED]: [[14.55927778]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_1.0-num_fast_corners      -0.229416      -0.112015
+driverId_807.0-strt_len_median     -0.229416      -0.098049
+driverId_846.0-num_fast_corners    -0.229416      -0.006053
+driverId_844.0-num_fast_corners    -0.229416      -0.001433
+driverId_847.0-num_slow_corners    -0.229416       0.006735
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.105715
+prev_driver_points_prop            -0.715970       0.297687
+driverId_842.0-num_slow_corners     4.358899       4.103274
+
+[DRIVER]: COL [PRED]: [[9.87]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_1.0-num_fast_corners      -0.229416      -0.498561
+driverId_842.0-num_slow_corners    -0.229416      -0.320106
+driverId_807.0-strt_len_median     -0.229416      -0.208206
+driverId_846.0-num_fast_corners    -0.229416      -0.108803
+driverId_844.0-num_fast_corners    -0.229416      -0.047684
+driverId_830.0-strt_len_median     -0.229416       0.008561
+driverId_847.0-num_slow_corners    -0.229416       0.016544
+driverId_859.0-num_fast_corners    -0.229416       0.128318
+prev_driver_points_prop             0.000000       0.648532
+
+[DRIVER]: STR [PRED]: [[14.21]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.497906
+driverId_1.0-num_fast_corners      -0.229416      -0.145861
+driverId_807.0-strt_len_median     -0.229416      -0.105320
+driverId_844.0-num_fast_corners    -0.229416      -0.022625
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.381252
+prev_driver_points_prop            -0.618415       4.338363
+
+[DRIVER]: ALO [PRED]: [[11.26]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.460622
+driverId_1.0-num_fast_corners      -0.229416      -0.145861
+driverId_807.0-strt_len_median     -0.229416      -0.064487
+driverId_844.0-num_fast_corners    -0.229416      -0.022625
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.293430
+prev_driver_points_prop            -0.596736       1.398067
+
+[DRIVER]: HUL [PRED]: [[16.66]] [BIAS]: [10.25140351]
+---                                 Input Value  Feature Score
+driverId_842.0-num_slow_corners    -0.229416      -0.346819
+driverId_1.0-num_fast_corners      -0.229416      -0.162606
+driverId_844.0-num_fast_corners    -0.229416      -0.018550
+driverId_846.0-num_fast_corners    -0.229416      -0.011363
+driverId_847.0-num_slow_corners    -0.229416       0.010044
+driverId_830.0-strt_len_median     -0.229416       0.012013
+driverId_859.0-num_fast_corners    -0.229416       0.298421
+driverId_807.0-strt_len_median      4.358899       2.257129
+prev_driver_points_prop            -0.520861       4.370326
+

@@ -11,7 +11,7 @@ except:
 
 
 import fastf1
-EXTERNAL_CACHE = True
+EXTERNAL_CACHE = False
 if EXTERNAL_CACHE:
     fastf1.Cache.enable_cache("/mnt/d")
 
@@ -224,9 +224,9 @@ def _fit_model(
         0:1,
         1:1,
         2:1,
-        3:2,
-        4:2,
-        5:2
+        3:4,
+        4:4,
+        5:4
     },
     model_type = 'LASSO',
     main_features_only = False, 
