@@ -17,7 +17,10 @@ from sklearn.preprocessing import PowerTransformer
 
 def agg_lap_rep_selection(
     session_obj,
-    kvals=[2,3]
+    kvals=[2,3],
+    agg_func='mean',
+    min_sample=2,
+    lap_thresh=1.1
 ) -> pd.DataFrame:
     '''
     Performs clustering over all driver laps and then 
@@ -41,8 +44,13 @@ def agg_lap_rep_selection(
       to query lap data from
     - kvals (list[int]): the different number of clusters to try with
       silhouette analysis to choose the best value
+    - agg_func (str): options=['mean', 'median']. The aggregation function
+      used to define the representative lap time for drivers in a given 
+      free practice session
+    - min_sample (int): the minimum number of samples which must be used to 
+      derive a representative lap for each driver
     '''
-    full_laps = session_obj.laps
+    full_laps = session_obj.laps.pick_quicklaps(threshold=lap_thresh).dropna(subset=['LapTime'])
 
     # get seconds format of lap times for all drivers
     full_laps.loc[:,'lap_seconds'] = full_laps['LapTime'].dt.total_seconds() # convert to seconds (float)
@@ -50,7 +58,7 @@ def agg_lap_rep_selection(
                                 /full_laps['lap_seconds'].std()
     
     current_score = 0
-    fit_array = full_laps['lap_seconds_norm'].dropna().to_numpy().reshape(-1,1)
+    fit_array = full_laps[['lap_seconds_norm', 'LapNumber']].dropna().to_numpy()
     
     if len(fit_array) == 0: # return a null value if no laps were recorded
         return np.nan
@@ -77,7 +85,78 @@ def agg_lap_rep_selection(
             full_laps['lap_cluster'] = kmeans.labels_
     
     # perform analysis over end data
+    # pseudocode
+    # create a df to hold cluster information
+    # col1: cluster num
+    # col2: cluster min
+    # while rep_laps df not full:
+    #   take the cluster with minimum lap time average
+    #   drop it from the cluster information df
+    #   take a grouped average / median (whatever summary statistic you want)
+    #   -> and return the information for each driver as like the 'base' 
+    #   -> driver rep laps data frame
+    #   check if all driver names in the resulting df. if so, stop loop, 
+    #   -> otherwise continue
 
+    rep_laps = pd.DataFrame()
+
+    cluster_id_df = full_laps.groupby('lap_cluster')['lap_seconds'].\
+                              agg(agg_func).\
+                              reset_index().\
+                              rename(columns={"index": "lap_cluster"})
+
+    # print("CLUSTER ID DF")
+    # print("---")
+    # print(cluster_id_df)
+    # print("---")
+
+    continue_agg = True
+    while continue_agg:
+        c_id = cluster_id_df.loc[cluster_id_df['lap_seconds']==cluster_id_df['lap_seconds'].min(), 'lap_cluster'].values[0]
+        cluster_id_df = cluster_id_df[cluster_id_df['lap_cluster']!=c_id] # eliminate from id_df
+
+        tmp = full_laps.loc[full_laps['lap_cluster']==c_id]
+
+        # filter outlier laps for each driver from the cluster (greater than 1.05 * the minimum lap time)
+        min_driver_laps = tmp.groupby("Driver")['lap_seconds'].\
+                              agg(['min', 'count']).\
+                              reset_index().\
+                              rename(columns={'index': 'Driver'})
+        # print("MIN DRIVER LAPS\n{}".format(min_driver_laps))
+        for driver in tmp['Driver'].unique():
+            out_thresh = 1.05 * min_driver_laps[min_driver_laps['Driver']==driver]['min'].values[0]
+            tmp = tmp.loc[
+                ~((tmp['Driver']==driver) &
+                (tmp['lap_seconds'] > out_thresh))
+            ]
+
+        # for driver in tmp['Driver'].unique():
+        #     print(tmp.loc[tmp['Driver']==driver, ['Driver', 'lap_seconds']])
+
+        if rep_laps.empty:
+            rep_laps = tmp.groupby("Driver")['lap_seconds'].\
+                           agg([agg_func, 'count']).\
+                           reset_index().\
+                           rename(columns={"index": "Driver"})
+        
+        else:
+            tmp = tmp.loc[~tmp['Driver'].isin(rep_laps['Driver'].unique())]
+            tmp_drivers = tmp.groupby("Driver")['lap_seconds'].\
+                              agg(agg_func).\
+                              reset_index().\
+                              rename(columns={"index": "Driver"})
+            
+            rep_laps = pd.concat([rep_laps, tmp_drivers], 
+                                 axis=0,
+                                 ignore_index=True)
+            
+        if set(full_laps['Driver'].unique()) == set(rep_laps['Driver'].unique()):
+            continue_agg = False
+    # print("REP LAPS\n{}".format(rep_laps))
+
+    # print("REP LAPS: \n{}".format(rep_laps.sort_values(by=agg_func)))
+
+    return rep_laps.sort_values(by=agg_func)
 
 
 def get_lap_rep(
@@ -240,7 +319,8 @@ def get_driver_session_ranks(
             "Session_Lap": rep_lap
         })
     else:
-        rep_laps = agg_lap_rep_selection(session)
+        rep_laps = agg_lap_rep_selection(session, agg_func='mean').rename(columns={"mean": "Session_Lap"}).drop("count", axis=1)
+
     # take the max session lap time
     rep_laps.loc[pd.isnull(rep_laps['Session_Lap'])] = rep_laps['Session_Lap'].max()
 
@@ -289,8 +369,37 @@ def recalc_fantasy_score(preds, dq_scores, dr_scores):
         preds.loc[idx, 'fantasy_pts'] += dr_scores[pred['fp']]
     return preds
 
+
+def test_main2(
+    predictions_file_path:str = "../../results/monza/predictions.csv"
+):
+    '''
+    Inputs:
+    -------
+    - predictions_file_path (str): the path to the base predictions file to use
+    '''
+    preds = pd.read_csv(predictions_file_path)
+    ranks = get_driver_session_ranks(round=16, base_predictions=preds, approach='cluster', use_i_clusters=False)
+
+    ex_cols = ranks.drop('Driver', axis=1).columns
+    if len(set(ex_cols) - set(preds.columns)) < len(ex_cols):
+        preds = preds.drop(ex_cols, axis=1)
+    
+    z = pd.merge(preds, ranks, on='Driver', how='left')
+    z['adj_pred_order1'] = z.apply(get_new_pred, axis=1)
+    z['adj_pred_order2'] = z.apply(get_new_pred_alt, axis=1)
+
+    # if missing - just ignore the data
+    z.loc[pd.isnull(z['adj_pred_order1']), 'adj_pred_order1'] = z.loc[pd.isnull(z['adj_pred_order1']), 'positionOrder']
+    z.loc[pd.isnull(z['adj_pred_order2']), 'adj_pred_order2'] = z.loc[pd.isnull(z['adj_pred_order2']), 'positionOrder']
+
+    z['new_fp_1'] = z['adj_pred_order1'].rank(method='min', ascending=True).astype(int)
+    z['new_fp_2'] = z['adj_pred_order2'].rank(method='min', ascending=True).astype(int)
+    z = z.sort_values(by = 'adj_pred_order2')
+
+    print(z[['Driver', 'new_fp_2']])
         
-def test_main(
+def test_main1(
     predictions_file_path:str = '../../results/monza/predictions.csv'
 ):
     preds = pd.read_csv(predictions_file_path)
@@ -336,4 +445,4 @@ def test_main(
 
 
 if __name__ == "__main__":
-    test_main("../../results/monza/predictions.csv")
+    test_main2("../../results/monza/predictions.csv")
