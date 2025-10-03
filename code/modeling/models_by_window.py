@@ -11,7 +11,7 @@ except:
 
 
 import fastf1
-EXTERNAL_CACHE = False
+EXTERNAL_CACHE = True
 if EXTERNAL_CACHE:
     fastf1.Cache.enable_cache("/mnt/d")
 
@@ -169,7 +169,7 @@ def get_forecast_data(
     evnt_qry = pd.DataFrame(
         {"year":[year-1], # get the most recent year's speed data
          "name":[event['EventName'].item()],
-         "circuitId":[c1['circuitId'].item()]}
+         "circuitId":[c1['circuitId'].values[0]]}
     )
     speeds = get_track_speeds(event=evnt_qry)
     # print("[INFO]: track_speeds = \n{}".format(speeds)) # set base keys based on speed values
@@ -210,7 +210,7 @@ def get_forecast_data(
 
     if total_nulls > 0:
         print(f"{Colors.RED} !!WARNING!! <--")
-        print(sub_data[drivers].T)
+        print(null_driver_val)
         print(f"{Colors.ENDC}")
     return data_window[full_vars].fillna(0)
 
@@ -223,8 +223,8 @@ def _fit_model(
     ratio={
         0:1,
         1:1,
-        2:1,
-        3:4,
+        2:2,
+        3:2,
         4:4,
         5:4
     },
@@ -642,9 +642,7 @@ def fit_eval_window_model(
                     r_res_dict[d] = [tmp[target[1]].values[0]]
                     q_res_dict[d] = [tmp[target[0]].values[0]]
                 except:
-                    print(Colors.RED)
-                    print(d)
-                    print(Colors.ENDC)
+                    continue
                 
             r_df_tmp = pd.DataFrame(r_res_dict)
             q_df_tmp = pd.DataFrame(q_res_dict)

@@ -62,12 +62,12 @@ if __name__ == "__main__":
                 'num_med_corners'
             ],
             start_data = '../data/clean_model_data2.csv',
-            pred_round = 17,
+            pred_round = 18,
             k = 4,
             year = 2025,
             std_errors = True, # change to true for production run
             boot_trials = 100,
-            predictions_folder = "../results/baku",
+            predictions_folder = "../results/singapore",
             output_feature_report= True,
             model_type = 'RF',
             adjust_session = 'FP2' # if None - it ignores the fp2 session adjustment option
