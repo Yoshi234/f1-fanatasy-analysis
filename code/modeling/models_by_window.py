@@ -11,7 +11,7 @@ except:
 
 
 import fastf1
-EXTERNAL_CACHE = True
+EXTERNAL_CACHE = False
 if EXTERNAL_CACHE:
     fastf1.Cache.enable_cache("/mnt/d")
 
@@ -1276,7 +1276,7 @@ def main2(
         k=k,
         round=pred_round, # fits model up to the round before the prediction round
         year=year,
-        target=['grid','positionOrder'],
+        target=['positionOrder','grid'],
         predictions_folder=predictions_folder,
         start_data=start_data,
         drivers_data=drivers_data,
