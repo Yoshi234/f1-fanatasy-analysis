@@ -152,9 +152,6 @@ def agg_lap_rep_selection(
             
         if set(full_laps['Driver'].unique()) == set(rep_laps['Driver'].unique()):
             continue_agg = False
-    # print("REP LAPS\n{}".format(rep_laps))
-
-    # print("REP LAPS: \n{}".format(rep_laps.sort_values(by=agg_func)))
 
     return rep_laps.sort_values(by=agg_func)
 
