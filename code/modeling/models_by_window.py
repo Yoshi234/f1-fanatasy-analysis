@@ -113,12 +113,15 @@ def get_forecast_data(
     vars=[],
     fitted_drivers=[],
     fitted_constructors=[],
-    full_vars=[]
+    full_vars=[],
+    full_data=None
 ):
     '''
     return the X data matrix to use in making predictions
     for the next race in sequence
     '''
+    if full_data is None:
+        print(f'{Colors.YELLOW}[WARNING]: Interaction Feature Normalization Incorrect. Please pass full training data{Colors.ENDC}')
     # fetch the current round
     schedule = fastf1.get_event_schedule(year)
     event = schedule.loc[(schedule['RoundNumber']==rnd)]
@@ -191,27 +194,43 @@ def get_forecast_data(
         data_window, d_interact = add_interaction(
             data_window, vars=[var], drivers=fitted_drivers, ret_term_names=True, debug=False, print_debug=False)
         d_interactions += d_interact
+
+    # print("BEFORE STANDARDIZATION")
+    # print(data_window['driverId_832.0-num_fast_corners'])
         
     # add null entries for all of the missing dirvers
-        
+    full_data['forecast'] = 0
+    data_window['forecast'] = 1
+
+    full_vars += ['forecast']
+
+    tmp = pd.concat([data_window[full_vars], full_data[full_vars]], ignore_index=True, axis=0)
+    # print(tmp['driverId_832.0-num_fast_corners'].unique())
+
     # get the subset of features we actually want
     m_vars = main_features + d_interactions + c_interactions + std_pt_features
     scaler = StandardScaler()
-    data_window[m_vars] = scaler.fit_transform(data_window[m_vars])
-    
+    tmp[m_vars] = scaler.fit_transform(tmp[m_vars])
+
+    # print(tmp['driverId_832.0-num_fast_corners'].unique())
+
+    data_window = tmp.loc[tmp['forecast']==1].drop('forecast', axis=1)
+    # print(tmp.loc[tmp['forecast']==1])
+    # print(data_window['driverId_832.0-num_fast_corners'].unique())
     # print("[INFO]: data keys:")
     # for key in data_window.keys():
     #     print(key)
 
+    full_vars.remove('forecast')
     sub_data = data_window[full_vars]
     total_nulls = sub_data.isna().sum().sum()
 
-    null_driver_val = sub_data.loc[pd.isnull(sub_data[drivers]).any(axis=1)].iloc[0].idxmax()
-
     if total_nulls > 0:
+        null_driver_val = sub_data.loc[pd.isnull(sub_data[drivers]).any(axis=1)].iloc[0].idxmax()
         print(f"{Colors.RED} !!WARNING!! <--")
-        print(sub_data[drivers].T)
+        print(null_driver_val)
         print(f"{Colors.ENDC}")
+
     return data_window[full_vars].fillna(0)
 
 
@@ -541,6 +560,11 @@ def fit_eval_window_model(
         d_interactions += d_interact
     
     m_feats = main_features + d_interactions + c_interactions + std_pt_features
+
+    # # TODO: REMOVE DEBUG 10/10/2025
+    print("NON FORECAST DATA")
+    print(data_window['driverId_832.0-num_fast_corners'])
+    # exit()
     
     if pred_round == None:
         pred_round = round+1
@@ -548,9 +572,13 @@ def fit_eval_window_model(
     X2 = get_forecast_data(
         pred_round, drivers_data=drivers_data, year=year, constructors_data=constructors_data,
         main_features=main_features, vars=vars, fitted_drivers=drivers, fitted_constructors=constructors,
-        full_vars=m_feats + drivers + constructors
+        full_vars=m_feats + drivers + constructors, full_data=data_window.copy()
     )
+
+    # print("\n{}".format(X2['driverId_832.0-num_fast_corners']))
     base_results = X2.copy()
+
+    # exit()
 
     ## PROCEDURE
     #  1. iterate over n trials (n=1000) 
