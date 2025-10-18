@@ -1,0 +1,37 @@
+/*size of team logo image*/
+img.taipy-image.team-logo {
+    width: 100% !important;
+}
+
+/*size of a card*/
+.card {
+    width: 30%;
+}
+
+/*centers elements vertically in a tgb.part()*/
+div.taipy-part {
+    text-align: center;
+}
+
+/*centers elements horizontally in title bar*/
+.css-316k64 {
+    place-items: center;
+}
+
+/*font size of tgb.text() elements*/
+.driver-name, .driver-number, .css-j89s5o {
+    font-size: 1.5vw;
+}
+
+/*size of driver image*/
+img.taipy-image.driver-image {
+    width: 100% !important;
+}
+
+/*determines spacing of features to the right of driver image*/
+div.taipy-part.features {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100%;
+}
