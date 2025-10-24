@@ -1,11 +1,32 @@
+.card.full {
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+}
+
 /*size of team logo image*/
 img.taipy-image.team-logo {
     width: 100% !important;
 }
 
-/*size of a card*/
-.card {
-    width: 30%;
+/*size of a card and stretching concerns*/
+.card.driver {
+    width: 100%;
+    border: 1px white solid;
+    margin-bottom: 5%;
+    height: 10%;
+    min-height: 150px;       /* ensures a baseline height */
+    /*flex-grow: 1;*/            /* allows cards to stretch evenly */
+    /*display: flex;*/
+    /*flex-direction: column;*/
 }
 
 /*centers elements vertically in a tgb.part()*/
