@@ -3,10 +3,13 @@ import taipy.gui.builder as tgb
 import pandas as pd
 import tp_funcs
 
+# read in predictions for a specific race
 predictions = pd.read_csv('../../results/baku/predictions.csv')
 
+# get the drivers in the race
 driverRefs = list(predictions['Driver'])
 
+# read in and filter driver data for name and number information
 drivers = pd.read_csv('../../data/drivers.csv')
 
 drivers = drivers[drivers['code'].isin(driverRefs)]
@@ -20,6 +23,8 @@ except:
 
 #print(drivers)
 
+# function to get top 3 features from the race for each driver and return in dataframe,
+# function should probably have a parameter to set the race
 features = tp_funcs.get_features()
 
 
@@ -27,6 +32,8 @@ with tgb.Page() as page:
     with tgb.part(class_name="card full"):
         with tgb.layout(columns="1 1"):
             for i in range(2):
+                # determine the order that the cards are shown with slicing
+                # i == 0 is the first column and i == 1 is the second column
                 if i == 0:
                     #slice = driverRefs[:len(driverRefs) // 2]
                     slice = driverRefs[0::2]
@@ -59,13 +66,14 @@ with tgb.Page() as page:
 
                         driver_number = drivers.loc[drivers['code'] == d, 'number'].item()
 
-                        
+                        # changing to haas to match haas driver image file names
                         if team == 'haasf1team':
                             team = 'haas'
                         
                         first_name_3 = first_name[:3].lower()
                         last_name_3 = last_name[:3].lower()
 
+                        # specific name edits to match driver image file names
                         if last_name_3 == 'kim':
                             last_name_3 = 'ant'
                         elif last_name_3 == 'fra':
@@ -76,16 +84,21 @@ with tgb.Page() as page:
 
                         driver_image_path = 'images/drivers/2025' + team + first_name_3 + last_name_3 + '01right.avif'
 
+                        # get features for specific driver
                         driver_features = list(features.loc[features['driverRef'] == d, 'feature'])
                         driver_feature_scores = list(features.loc[features['driverRef'] == d, 'feature_score'])
 
+                        # get prediction for specific driver
                         driver_avg = predictions.loc[predictions['Driver'] == d, 'adj_pred_order2'].item()
                         driver_pred = predictions.loc[predictions['Driver'] == d, 'fp'].item()
 
                         with tgb.part(class_name="card driver"):
-                            with tgb.layout(columns="1 5 2"):
+                            with tgb.layout(columns="1 5 2", class_name=team):
                                 with tgb.part():
-                                    tgb.image(team_logo_path, class_name='team-logo')
+                                    if team == 'mercedes' or team == 'alpine':
+                                        tgb.image(team_logo_path, class_name='team-logo alp-mer')
+                                    else:
+                                        tgb.image(team_logo_path, class_name='team-logo')
                                 with tgb.part():
                                     tgb.text(driver_name, class_name='driver-name')
                                 with tgb.part():
@@ -101,7 +114,11 @@ with tgb.Page() as page:
                                 with tgb.part(class_name='avg-fin'):
                                     tgb.text('Average Finish')
                                     tgb.text(str(round(driver_avg, 2)))
-                                with tgb.part(class_name='pred'):
+                                if int(driver_pred) <= 3:
+                                    pred_class = ' place' + str(int(driver_pred))
+                                else:
+                                    pred_class = ''
+                                with tgb.part(class_name='pred'+pred_class):
                                     tgb.text('Prediction')
                                     tgb.text('P' + str(int(driver_pred)))
 
