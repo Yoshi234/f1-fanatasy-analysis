@@ -862,4 +862,4 @@ driverId,driverRef,number,code,forename,surname,dob,nationality,url
 862,"lawson",30,"LAW","Liam","Lawson","2002-02-11","New Zealander","https://en.wikipedia.org/wiki/Liam_Lawson"
 863,"doohan",7,"DOO","Jack","Doohan","2003-01-20","Australian","https://en.wikipedia.org/wiki/Jack_Doohan"
 864,"bortoleto",5,"BOR","Gabriel","Bortoleto","2004-10-14","Brazilian","https://en.wikipedia.org/wiki/Gabriel_Bortoleto"
-865,"colapinto",43,"COL","Colapinto","Franco","2003-05-27","Argentine","https://en.wikipedia.org/wiki/Franco_Colapinto"
+865,"colapinto",43,"COL","Franco","Colapinto","2003-05-27","Argentine","https://en.wikipedia.org/wiki/Franco_Colapinto"
