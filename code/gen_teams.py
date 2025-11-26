@@ -376,14 +376,15 @@ if __name__ == "__main__":
     # please update this
     driversA, driversB, constructorsA, constructorsB = copilot_price_data_output()
 
-    location = "monza"
+    location = "mexico"
     results_folder = "../results"
     assets_file = "josh_fantasytools_assets.csv"
-    team = 'team2'
+    team = 'team1'
 
     # set team gen parameters
-    run_get_scores = True
-    update_prices = True
+    run_get_scores = False
+    update_prices = False
+    run_analysis = True
 
     if not assets_file in os.listdir(f"{results_folder}/{location}"):
         dest = f"{results_folder}/{location}/{assets_file}"
@@ -404,29 +405,31 @@ if __name__ == "__main__":
             A_drivers=driversA,
             B_drivers=driversB,
             A_constructors=constructorsA,
-            B_constructors=constructorsB
+            B_constructors=constructorsB,
+            std_cols=['driver','price/$','R16 Pts','R17 Pts','constructor']
         )
 
     teams_info = {
-        'team1': {
-            'cur_team': frozenset(['PIA', 'ALO', 'BOR', 'NOR', 'LAW', 'MCL', 'KCK']),
-            'surplus': 2.3,
-            'max_dif': 10
+        'team2': { # oscar-runner-up
+            'cur_team': frozenset(['NOR', 'ALB', 'LAW', 'SAI', 'HAD', 'MCL', 'RED']),
+            'surplus': 0.2,
+            'max_dif': 2
         },
-        'team2': {
-            'cur_team': frozenset(['BOR', 'HAD', 'LAW', 'PIA', 'ALO', 'FER', 'MCL']),
-            'surplus': 0.1, 
-            'max_dif': 10
+        'team1': { # gp-trader
+            'cur_team': frozenset(['VER', 'RUS', 'SAI', 'COL', 'LAW', 'WIL', 'MCL']),
+            'surplus': 0.5, 
+            'max_dif': 2
         }
     }
 
-    # # run team analysis based on metrics
-    selected_team = teams_info[team]
-    team_analysis(
-        values_table = f"{results_folder}/{location}/{assets_file}", 
-        output = f"{results_folder}/{location}/josh_fantasytools_results1.csv", 
-        weight=False,
-        starting_team=selected_team['cur_team'],
-        surplus=selected_team['surplus'],
-        max_dif=selected_team['max_dif']
-    )
+    if run_analysis:
+        # # run team analysis based on metrics
+        selected_team = teams_info[team]
+        team_analysis(
+            values_table = f"{results_folder}/{location}/{assets_file}", 
+            output = f"{results_folder}/{location}/josh_fantasytools_results1.csv", 
+            weight=False,
+            starting_team=selected_team['cur_team'],
+            surplus=selected_team['surplus'],
+            max_dif=selected_team['max_dif']
+        )

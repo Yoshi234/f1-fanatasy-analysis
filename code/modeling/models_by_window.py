@@ -11,7 +11,7 @@ except:
 
 
 import fastf1
-EXTERNAL_CACHE = False
+EXTERNAL_CACHE = True
 if EXTERNAL_CACHE:
     fastf1.Cache.enable_cache("/mnt/d")
 
@@ -365,6 +365,15 @@ def _fit_model(
             'Feature': X.columns, 
             'Coefficient': model.coef_
         })
+        intercept_vals = pd.DataFrame({
+            'Feature': ['Intercept'],
+            'Coefficient': [model.intercept_]
+        })
+        # add intercept to the coefficients list
+        model_coefficients = pd.concat(
+            [model_coefficients, intercept_vals], ignore_index=True, axis=0
+        )
+
         # select features with non-zero coefficients
         model_coefficients = model_coefficients[np.abs(model_coefficients['Coefficient']) > 0]
         if save_feature_coeffs and not resample_data: 
@@ -401,7 +410,7 @@ def plot_coeffs(
     - new_coeff_df (pd.DataFrame): an updated version of the existing coefficient 
       dataframe with updated (more interpretable) feature names 
     '''
-    new_coeff_df = coefficients_df.copy()
+    new_coeff_df = coefficients_df.loc[coefficients_df['Feature']!='Intercept'].copy()
     new_driver_df = drivers_df.copy()
 
     # extract driver Id's from feature names
@@ -445,7 +454,8 @@ def plot_coeffs(
 
 def print_report(
     feature_contributions,
-    report_path
+    report_path,
+    model_type='RF'
 ):
     '''
     Prints predictions report for each of the drivers - top 10 features and 
@@ -464,7 +474,6 @@ def print_report(
             f.write(f'[DRIVER]: {driver} [PRED]: {pred} [BIAS]: {bias}\n')
             f.write(f'---')
             f.write(f'{out_df.to_string()}\n\n')
-
             
 def fit_eval_window_model(
     main_features, # main features like prev points, etc.
@@ -591,37 +600,37 @@ def fit_eval_window_model(
 
     # only use lasso feature selection for 'non-lasso' runs
     # if not model_type == "LASSO":
-    _, race_features = _fit_model(
-        data_window.copy(), 
-        main_vars=m_feats, 
-        response_var = target[0],
-        cat_features = drivers + constructors,
-        save_feature_coeffs = True, 
-        resample_data = False, 
-        model_type = 'LASSO', 
-        main_features_only = False,
-        dest_file = "{}/lasso_coeffs_race.csv".format(predictions_folder)
-    )
-    _, quali_features = _fit_model(
-        data_window.copy(),
-        main_vars = m_feats,
-        response_var = target[1],
-        cat_features = drivers + constructors,
-        save_feature_coeffs = True, 
-        resample_data = False, 
-        model_type = 'LASSO', 
-        main_features_only = False,
-        dest_file = "{}/lasso_coeffs_quali.csv".format(predictions_folder)
-    )
+    if model_type != "LASSO":
+        _, race_features = _fit_model(
+            data_window.copy(), 
+            main_vars=m_feats, 
+            response_var = target[0],
+            cat_features = drivers + constructors,
+            save_feature_coeffs = True, 
+            resample_data = False, 
+            model_type = 'LASSO', 
+            main_features_only = False,
+            dest_file = "{}/lasso_coeffs_race.csv".format(predictions_folder)
+        )
+        _, quali_features = _fit_model(
+            data_window.copy(),
+            main_vars = m_feats,
+            response_var = target[1],
+            cat_features = drivers + constructors,
+            save_feature_coeffs = True, 
+            resample_data = False, 
+            model_type = 'LASSO', 
+            main_features_only = False,
+            dest_file = "{}/lasso_coeffs_quali.csv".format(predictions_folder)
+        )
+    else:
+        # if lasso regression - use full feature set
+        race_features = m_feats
+        quali_features = m_feats
     
     if std_errors == True:
         q_results = pd.DataFrame({key:[] for key in drivers})
         r_results = pd.DataFrame({key:[] for key in drivers})
-
-        # if lasso regression - use full feature set
-        if model_type == 'LASSO':
-            race_features = m_feats
-            quali_features = m_feats
 
         for i in tqdm(range(boot_trials), ncols=100,
                   desc='processing trials', dynamic_ncols=True, leave=True):
@@ -677,11 +686,6 @@ def fit_eval_window_model(
             
             r_results = pd.concat([r_results, r_df_tmp], axis=0).reset_index(drop=True)
             q_results = pd.concat([q_results, q_df_tmp], axis=0).reset_index(drop=True)
-                 
-    # 2. evaluate over all drivers
-    # 3. evaluate over all constructors
-    # 4. generate (track) interactions over the significant drivers
-    # 5. generate (track) interactions over significant constructors
     
     # make predictions for input race year=2025, round=3 using a random forest model
     model1 = _fit_model(
@@ -690,10 +694,10 @@ def fit_eval_window_model(
         response_var=target[0],
         model_type = model_type,
         cat_features= drivers + constructors,
-        save_feature_coeffs=False,
+        save_feature_coeffs=True,
         main_features_only = True,
         resample_data=False,
-        # dest_file="{}/round{}_grid_lasso-coefs.csv".format(predictions_folder, pred_round)
+        dest_file=f"{predictions_folder}/lasso_coeffs_race.csv"
     )[0]
 
     if output_dt_vis:
@@ -719,9 +723,10 @@ def fit_eval_window_model(
         response_var=target[1],
         model_type = model_type,
         cat_features= drivers + constructors,
-        save_feature_coeffs=False,
+        save_feature_coeffs=True,
         main_features_only = True,
         resample_data=False,
+        dest_file=f"{predictions_folder}/lasso_coeffs_quali.csv"
     )[0]
     
     if output_dt_vis:
@@ -739,36 +744,75 @@ def fit_eval_window_model(
             output_tree_file_name='quali_model.pdf'
         )[0]
 
-    if output_feature_report and model_type == 'RF':
+    report_models = ["LASSO", "RF"]
+    if output_feature_report and (model_type in report_models):
         race_pred_dict = dict()
         quali_pred_dict = dict()
 
+        # isolate the nonzero model features
+        quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
+        race_coeffs_df = pd.read_csv("{}/lasso_coeffs_race.csv".format(predictions_folder))
+
         # find driver matches and do preds 1-by-1
-        for d in drivers: # iterate through list of driver cat feature names
+        for i in range(len(drivers)): # iterate through list of driver cat feature names
+            d = drivers[i]
             id_val = float(d.split("_")[-1])
             sample = X2.loc[X2[d] == 1.0]
             driver_name = drivers_db.loc[drivers_db['driverId']==id_val, 'code'].values[0]
             
             # make predictions
-            pred_r, bias_r, contrib_r = ti.predict(model1, sample[race_features])
-            pred_q, bias_q, contrib_q = ti.predict(model2, sample[quali_features])
+            if model_type == "RF":
+                pred_r, bias_r, contrib_r = ti.predict(model1, sample[race_features])
+                pred_q, bias_q, contrib_q = ti.predict(model2, sample[quali_features])
 
-            # output display dfs
-            r_out = pd.DataFrame(
-                {'Input Value': sample[race_features].to_numpy()[0], 'Feature Score': contrib_r[0]}, 
-                index=race_features)
-            r_out = r_out.loc[r_out['Feature Score']!=0].sort_values(by='Feature Score')
+                # output display dfs
+                r_out = pd.DataFrame(
+                    {'Input Value': sample[race_features].to_numpy()[0], 'Feature Score': contrib_r[0]}, 
+                    index=race_features)
+                r_out = r_out.loc[r_out['Feature Score']!=0].sort_values(by='Feature Score')
 
-            q_out = pd.DataFrame(
-                {'Input Value': sample[quali_features].to_numpy()[0], 'Feature Score': contrib_q[0]},
-                index=quali_features,
-            )
-            q_out = q_out.loc[q_out['Feature Score']!=0].sort_values(by='Feature Score')
+                q_out = pd.DataFrame(
+                    {'Input Value': sample[quali_features].to_numpy()[0], 'Feature Score': contrib_q[0]},
+                    index=quali_features,
+                )
+                q_out = q_out.loc[q_out['Feature Score']!=0].sort_values(by='Feature Score')
 
-            # save for output
-            race_pred_dict[driver_name] = [pred_r, r_out, bias_r]
-            quali_pred_dict[driver_name] = [pred_q, q_out, bias_q]
-        
+                # save for output
+                race_pred_dict[driver_name] = [pred_r, r_out, bias_r]
+                quali_pred_dict[driver_name] = [pred_q, q_out, bias_q]
+            
+            elif model_type == "LASSO":
+                pred_r = model1.predict(sample[race_features])
+                pred_q = model2.predict(sample[quali_features])
+
+                flipped_sample = sample.T.reset_index(names="Feature")
+                flipped_sample = flipped_sample.rename(columns={i:'Value'})
+
+                x = pd.merge(
+                    left=race_coeffs_df, 
+                    right=flipped_sample.copy(),
+                    how='left',
+                    left_on='Feature', right_on='Feature')
+                x['Contribution'] = x['Coefficient'] * x['Value']
+                x = x.sort_values(by='Contribution', key=abs, ascending=False)
+                bias_r = x.loc[x['Feature']=='Intercept', 'Coefficient'].values[0]
+                x.to_csv(f"{predictions_folder}/{driver_name}_race_report.csv")
+
+                y = pd.merge(
+                    left=quali_coeffs_df,
+                    right=flipped_sample.copy(),
+                    how='left',
+                    left_on='Feature', right_on='Feature'
+                )
+                y['Contribution'] = y['Coefficient'] * y['Value']
+                y = y.sort_values(by='Contribution', key=abs, ascending=False)
+                bias_q = y.loc[y['Feature']=='Intercept', 'Coefficient'].values[0]
+                y.to_csv(f"{predictions_folder}/{driver_name}_quali_report.csv")
+
+                # output display dfs
+                race_pred_dict[driver_name] = [pred_r, x, bias_r]
+                quali_pred_dict[driver_name] = [pred_q, y, bias_q]
+                
         print_report(race_pred_dict, f'{predictions_folder}/race_report.txt')
         print_report(quali_pred_dict, f'{predictions_folder}/quali_report.txt')
 
@@ -877,9 +921,11 @@ def fit_eval_window_model(
         if fp2_adjust == True:
             # use standard errors and fp2 data to update predictions
             try:
-                ranks = get_driver_session_ranks(round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
+                ranks = get_driver_session_ranks(
+                    round=pred_round, session_type=adjustment_session, base_predictions=preds, approach='cluster')
             except:
-                ranks = get_driver_session_ranks(round=pred_round, session_type='FP1', base_predictions=preds, approach='cluster')
+                ranks = get_driver_session_ranks(
+                    round=pred_round, session_type='FP1', base_predictions=preds, approach='cluster')
             
             z = pd.merge(preds, ranks, on='Driver', how='left')
             z['adj_pred_order2'] = z.apply(get_new_pred_alt, axis=1)
@@ -895,7 +941,6 @@ def fit_eval_window_model(
 
             if eval_mode == True:
                 preds = z
-
 
     if plot_model_coef == True:
         quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
@@ -921,7 +966,7 @@ def fit_eval_window_model(
         quali_coeffs_df.to_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder), index=False)
         race_coeffs_df.to_csv("{}/lasso_coeffs_race.csv".format(predictions_folder), index=False)
 
-    if eval_mode == True:
+    if eval_mode == True and std_errors == True:
         round_subset = all_data.loc[all_data['round']==pred_round, ['driverId', 'positionOrder', 'grid']].rename(
             columns={'positionOrder': 'positionOrder_true', 'grid': 'grid_true'}
         )  
@@ -1244,9 +1289,10 @@ def main2(
         'corner_spd_min',
         'num_slow_corners',
         'num_fast_corners',
-        'num_med_corners'
+        'num_med_corners',
         # 'num_corners',
-        # 'circuit_len'
+        # 'circuit_len',
+        'temp'
     ],
     start_data = '../data/clean_model_data2.csv',
     drivers_data = '../data/drivers.csv',
@@ -1256,11 +1302,12 @@ def main2(
     pred_round = 14,
     k = 5,
     year = 2025,
-    std_errors = True,
+    std_errors = False,
     boot_trials = 100,
     output_feature_report = True,
     adjust_session = 'FP1',
-    model_type = 'LASSO'
+    model_type = 'LASSO',
+    eval_mode = False
 ):
     '''
     Some stuff
@@ -1287,7 +1334,8 @@ def main2(
         boot_trials=boot_trials,
         output_feature_report=output_feature_report,
         adjustment_session=adjust_session,
-        model_type=model_type
+        model_type=model_type,
+        eval_mode=eval_mode
     )
 
 

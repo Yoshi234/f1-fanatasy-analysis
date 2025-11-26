@@ -350,7 +350,7 @@ def get_new_pred(row):
 
 def get_new_pred_alt(row):
     # DEBUG - increased the scaling value requirement from 10 to 20
-    ratio = (row['positionOrder']-row['Rank'])/20
+    ratio = (row['positionOrder']-row['Rank'])/10
     new_ratio = (1 + math.fabs(row['lap_seconds_norm'])) * ratio
     prod = new_ratio * 1.96
     if prod > 2.576: prod = 2.576
