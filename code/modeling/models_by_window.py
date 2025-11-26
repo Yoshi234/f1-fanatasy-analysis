@@ -753,6 +753,13 @@ def fit_eval_window_model(
         quali_coeffs_df = pd.read_csv("{}/lasso_coeffs_quali.csv".format(predictions_folder))
         race_coeffs_df = pd.read_csv("{}/lasso_coeffs_race.csv".format(predictions_folder))
 
+        if model_type == "LASSO": # create a new pred file output with 'valid predictions'
+            refined_r_pred = []
+            driver_r = []
+            refined_q_pred = []
+
+            val_features = main_features + ['Intercept']
+
         # find driver matches and do preds 1-by-1
         for i in range(len(drivers)): # iterate through list of driver cat feature names
             d = drivers[i]
@@ -798,6 +805,18 @@ def fit_eval_window_model(
                 bias_r = x.loc[x['Feature']=='Intercept', 'Coefficient'].values[0]
                 x.to_csv(f"{predictions_folder}/{driver_name}_race_report.csv")
 
+                x_sub = x.loc[
+                    (x['Feature'].isin(val_features) |
+                     x['Feature'].str.contains(d, case=False, na=False))
+                ]
+
+                # get de-noised prediction
+                new_r_pred = x_sub['Contribution'].sum() +\
+                    x.loc[x['Feature']=='Intercept', 'Coefficient'].values[0]
+                refined_r_pred.append(new_r_pred)
+                driver_r.append(driver_name)
+
+                # qualifying report output
                 y = pd.merge(
                     left=quali_coeffs_df,
                     right=flipped_sample.copy(),
@@ -809,6 +828,16 @@ def fit_eval_window_model(
                 bias_q = y.loc[y['Feature']=='Intercept', 'Coefficient'].values[0]
                 y.to_csv(f"{predictions_folder}/{driver_name}_quali_report.csv")
 
+                # get denoised prediction
+                y_sub = y.loc[
+                    (y['Feature'].isin(val_features) |
+                     y['Feature'].str.contains(d, case=False, na=False))
+                ]
+
+                new_q_pred = y_sub['Contribution'].sum() +\
+                    y.loc[y['Feature']=='Intercept', 'Coefficient'].values[0]
+                refined_q_pred.append(new_q_pred)
+
                 # output display dfs
                 race_pred_dict[driver_name] = [pred_r, x, bias_r]
                 quali_pred_dict[driver_name] = [pred_q, y, bias_q]
@@ -816,9 +845,17 @@ def fit_eval_window_model(
         print_report(race_pred_dict, f'{predictions_folder}/race_report.txt')
         print_report(quali_pred_dict, f'{predictions_folder}/quali_report.txt')
 
-    #print(X2[race_features].isna().sum())
-    #print(X2[quali_features].isna().sum())
-    #print(X2.loc[pd.isnull(X2['prev_driver_points_prop'])])
+        if model_type == "LASSO": # print a prediction set without noisy coefficients
+            quali_denoise = pd.DataFrame({'Driver': driver_r, 'Pred': refined_q_pred})
+            quali_denoise['sp'] = quali_denoise['Pred'].rank(method='min').astype(int)
+            quali_denoise = quali_denoise.sort_values(by="sp", ascending=True)
+
+            race_denoise = pd.DataFrame({'Driver': driver_r, 'Pred': refined_r_pred})
+            race_denoise['fp'] = race_denoise['Pred'].rank(method='min').astype(int)
+            race_denoise = race_denoise.sort_values(by="fp", ascending=True)
+
+            quali_denoise.to_csv(f"{predictions_folder}/denoised_q_preds.csv")
+            race_denoise.to_csv(f"{predictions_folder}/denoised_r_preds.csv")
 
     y1 = model1.predict(X2[race_features])
     y2 = model2.predict(X2[quali_features])
