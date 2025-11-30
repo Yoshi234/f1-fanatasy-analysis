@@ -1,0 +1,139 @@
+/*hides default taipy watermark*/
+.taipy-watermark {
+    display: none !important;
+}
+
+.card.full {
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+}
+
+/*size of team logo image*/
+img.taipy-image.team-logo {
+    width: 100% !important;
+}
+
+img.taipy-image.team-logo.alp-mer {
+    width: 75% !important;
+}
+
+/*size of a card and stretching concerns*/
+.card.driver {
+    width: 100%;
+    border: 1px white solid;
+    margin-bottom: 5%;
+    height: 10%;
+    min-height: 150px;       /* ensures a baseline height */
+    /*flex-grow: 1;*/            /* allows cards to stretch evenly */
+    /*display: flex;*/
+    /*flex-direction: column;*/
+    padding: 0%;
+}
+
+/*centers elements vertically in a tgb.part()*/
+div.taipy-part {
+    text-align: center;
+}
+
+/*centers elements horizontally in title bar*/
+.css-316k64 {
+    place-items: center;
+    padding: 5%;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom: 1px solid white;
+}
+
+/*font size of tgb.text() elements*/
+.driver-name, .driver-number, .css-j89s5o {
+    font-size: 1.5vw;
+}
+
+/*size of driver image*/
+img.taipy-image.driver-image {
+    width: 100% !important;
+}
+
+/*determines spacing of features to the right of driver image*/
+div.taipy-part.features {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100%;
+}
+
+.avg-fin {
+    border-top: 1px solid white;
+    border-right: 1px solid white;
+    padding: 5%;
+}
+
+.pred {
+    border-top: 1px solid white;
+    border-left: 1px solid white;
+    padding: 5%;
+    border-bottom-right-radius: 8px;
+}
+
+
+.mclaren {
+    background-color: #ff8000;
+}
+
+.ferrari {
+    background-color: #e80020;
+}
+
+.mercedes {
+    background-color: #27f4d2;
+}
+
+.redbullracing {
+    background-color: #3671c6;
+}
+
+.williams {
+    background-color: #66c4ff;
+}
+
+.racingbulls {
+    background-color: #6692ff;
+}
+
+.astonmartin {
+    background-color: #229971;
+}
+
+.haas {
+    background-color: #b6babd;
+}
+
+.kicksauber {
+    background-color: #52e252;
+}
+
+.alpine {
+    background-color: #0093cc;
+}
+
+
+.place1 {
+    background-color: gold;
+}
+
+.place2 {
+    background-color: silver;
+}
+
+.place3 {
+    background-color: #cd7f32;
+}
