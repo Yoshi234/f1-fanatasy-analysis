@@ -132,6 +132,8 @@ def get_forecast_data(
     circuits = pd.read_csv(circuits_data)
     c1 = circuits.loc[circuits['location']==event['Location'].item()]
     
+    print(Colors.RED,event['Location'],Colors.ENDC)
+    
     # 1 get subset of data frame from previous race and use that data
     standings = get_standings_data(rnd, year, drivers_data)
     
@@ -244,8 +246,11 @@ def _fit_model(
         1:1,
         2:2,
         3:2,
-        4:4,
-        5:4
+        4:3,
+        5:3,
+        6:3,
+        7:3,
+        8:4
     },
     model_type = 'LASSO',
     main_features_only = False, 
@@ -571,8 +576,6 @@ def fit_eval_window_model(
     m_feats = main_features + d_interactions + c_interactions + std_pt_features
 
     # # TODO: REMOVE DEBUG 10/10/2025
-    print("NON FORECAST DATA")
-    print(data_window['driverId_832.0-num_fast_corners'])
     # exit()
     
     if pred_round == None:
